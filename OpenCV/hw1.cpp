@@ -49,6 +49,74 @@ void pause_handler(int id = -1);
 void drawCircle(int event, int x, int y, int, void* param);
 void radioButtonCallback(int id);
 
+
+
+
+
+void just_sync(int id);
+void CannyThreshold(int id);
+void HistogramEqualize(int id);
+void Threshold(int id);
+
+void idle();
+void checkbox(int id);
+
+void Canny_ui();
+void Threshold_ui();
+int mode = 0;
+
+//canny
+int lowTh = 1, ratioo = 3, kernel_size = 3, max_lowTh = 100;
+int blur_size = 3;
+
+void just_sync(int id) {
+	glui->sync_live();
+}
+#define CANNY 0
+#define THRESHOLD 1
+#define HISTEQ 2
+
+void CannyThreshold(int id) {
+	if (mode == CANNY) {
+		blur(output_frame, output_frame, Size(blur_size, blur_size));
+		Canny(output_frame, output_frame, lowTh, lowTh * ratioo, kernel_size);
+	}
+	glui->sync_live();
+}
+void Canny_ui() {
+	GLUI_EditText* edittext_lowTh, * edittext_blur_size;
+	GLUI_Rollout* rollout_canny = glui->add_rollout("Canny");
+	GLUI_Panel* panel_canny = glui->add_panel_to_panel(rollout_canny, "Canny Settings");
+
+	edittext_lowTh = new GLUI_EditText(panel_canny, "LowTh : ", &lowTh, 0, CannyThreshold);
+	edittext_blur_size = new GLUI_EditText(panel_canny, "BlurSize : ", &blur_size, 0, CannyThreshold);
+
+	GLUI_Spinner* spinner_lowTh = glui->add_spinner_to_panel(panel_canny, "LowTh : ", GLUI_SPINNER_INT, &lowTh, 0, CannyThreshold);
+	spinner_lowTh->set_int_limits(0, max_lowTh, GLUI_LIMIT_CLAMP);
+	spinner_lowTh->set_speed(0.001);
+	GLUI_Spinner* spinner_blursize = glui->add_spinner_to_panel(panel_canny, "BlurSize : ", GLUI_SPINNER_INT, &blur_size, 0, CannyThreshold);
+	spinner_blursize->set_int_limits(1, 10, GLUI_LIMIT_CLAMP);
+	spinner_blursize->set_speed(0.001);
+
+	glui->add_column_to_panel(panel_canny, false);
+
+	GLUI_Scrollbar* scrollbar_lowTh = new GLUI_Scrollbar(panel_canny, "lowTh", GLUI_SCROLL_HORIZONTAL, &lowTh, 0, CannyThreshold);
+	scrollbar_lowTh->set_int_limits(0, max_lowTh, GLUI_LIMIT_CLAMP);
+	scrollbar_lowTh->set_speed(0.001);
+	GLUI_Scrollbar* scrollbar_blursize = new GLUI_Scrollbar(panel_canny, "BlurSize", GLUI_SCROLL_HORIZONTAL, &blur_size, 0, CannyThreshold);
+	scrollbar_blursize->set_int_limits(1, 10, GLUI_LIMIT_CLAMP);
+	scrollbar_blursize->set_speed(0.001);
+}
+
+
+
+
+
+
+
+
+
+
 int open() {
 	OpenFileDialog* openFileDialog = new OpenFileDialog();
 	if (openFileDialog->ShowDialog()) {
@@ -76,6 +144,16 @@ int Save() {
 				cout << "Video END" << std::endl;
 				break;
 			}
+
+			//영상처리
+			//CannyThreshold(0);
+
+
+
+
+
+
+
 			output << output_frame;
 			imshow(SaveFilename, output_frame);
 			if (waitKey(1) == 27) {//1000 / vid_fps
@@ -493,7 +571,7 @@ int main(int argc, char* argv[])
 	btn_save = glui->add_button("Save", 0, SaveVideo);
 	btn_save->disable();
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
-
+	Canny_ui();
 	glui->set_main_gfx_window(main_window);
 
 	glutMainLoop();
