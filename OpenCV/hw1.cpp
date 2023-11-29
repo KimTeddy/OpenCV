@@ -23,15 +23,31 @@ Mat frame, output_frame;
 bool isopen = false;
 int playmod = PLAY_STOP;
 int vid_fps, vid_msec, vid_framecount, vid_width, vid_height;
+bool ispause = true;
 
 GLUI* glui; 
 GLUI_Panel* playbutton;
 GLUI_Panel* playbar;
 GLUI_Scrollbar* scrollbar_play;
 GLUI_Button* btn_save;
+GLUI_Panel* movedots;
+GLUI_Panel* checkboxes;
+GLUI_Panel* radiobutton;
+GLUI_RadioGroup* radiogroup;
+GLUI_Translation* dots[4];
 int framebar;
+float trans_dot_pos[4][3] = { 0.0 };
+float now_dot_pos[4][3] = { 0.0 };
+float prev_pos[4][3] = { 0.0 };
+int iswrap = true;
+int isdrawing = false;
+float set_dots[4][2] = { 0 };
+int selected_point;
 
+void wrap();
 void pause_handler(int id = -1);
+void drawCircle(int event, int x, int y, int, void* param);
+void radioButtonCallback(int id);
 
 int open() {
 	OpenFileDialog* openFileDialog = new OpenFileDialog();
@@ -41,19 +57,19 @@ int open() {
 	}
 	else return(-1);
 }
-
+String SaveFilename;
 int Save() {
 	SaveFileDialog* openFileDialog = new SaveFileDialog();
 	if (openFileDialog->ShowDialog()) {
-		Filename = openFileDialog->FileName;
+		SaveFilename = openFileDialog->FileName;
 		vid.set(CAP_PROP_POS_AVI_RATIO, 0);
-		VideoWriter output(Filename, VideoWriter::fourcc('M', 'J', 'P', 'G'), vid_fps, Size(vid_width, vid_height));//, iscolor
+		VideoWriter output(SaveFilename, VideoWriter::fourcc('M', 'J', 'P', 'G'), vid_fps, Size(vid_width, vid_height));//, iscolor
 		if (!output.isOpened())
 		{
-			std::cout << "Can't write video !!! check setting" << std::endl;
+			std::cout << "Can't write video." << std::endl;
 			return -1;
 		}
-		namedWindow(Filename);
+		namedWindow(SaveFilename);
 		while (1) {
 			vid >> output_frame;
 			if (output_frame.empty()) {
@@ -61,13 +77,13 @@ int Save() {
 				break;
 			}
 			output << output_frame;
-			imshow(Filename, output_frame);
+			imshow(SaveFilename, output_frame);
 			if (waitKey(1) == 27) {//1000 / vid_fps
 				cout << "Stop video record" << endl;
 				break;
 			}
 		}
-		destroyWindow(Filename);
+		destroyWindow(SaveFilename);
 		return 0;
 	}
 	return -1;
@@ -75,13 +91,14 @@ int Save() {
 void SaveVideo(int id) {
 	Save();
 }
+VideoCapture cap;
 void OpenVideo(int id) {
 	if (open() == 1) {
-		VideoCapture cap(Filename);
+		cap = VideoCapture(Filename);
 		vid = cap;
-		namedWindow("frame", 1);
+		namedWindow(Filename, 1);
 		vid >> frame;
-		imshow("frame", frame); 
+		imshow(Filename, frame);
 
 		vid_fps = vid.get(CAP_PROP_FPS);
 		vid_msec = 1.0 / (double)vid_fps * 1000; 
@@ -93,7 +110,21 @@ void OpenVideo(int id) {
 		playbutton->enable();
 		playbar->enable();
 		btn_save->enable();
+		movedots->enable();
+		checkboxes->enable();
+		radiobutton->enable();
+		radioButtonCallback(0);
 		scrollbar_play->set_int_limits(1, vid_framecount-1, GLUI_LIMIT_CLAMP);
+
+		now_dot_pos[0][0]=0; now_dot_pos[0][1]=0;			now_dot_pos[2][0]= vid_width; now_dot_pos[2][1]=0;
+		now_dot_pos[1][0]=0; now_dot_pos[1][1]= vid_height;	now_dot_pos[3][0]= vid_width; now_dot_pos[3][1]= vid_height;
+
+		set_dots[0][0] = 0; set_dots[0][1] = 0;				set_dots[2][0] = vid_width; set_dots[2][1] = 0;
+		set_dots[1][0] = 0; set_dots[1][1] = -vid_height;	set_dots[3][0] = vid_width; set_dots[3][1] = -vid_height;
+		
+		setMouseCallback(Filename, drawCircle);
+		//prev_pos[0][0] = 0;  prev_pos[0][1] = 0;			prev_pos[2][0] = vid_width;   prev_pos[2][1] = 0;
+		//prev_pos[1][0] = 0;  prev_pos[1][1] = vid_height;	prev_pos[3][0] = vid_width;   prev_pos[3][1] = vid_height;
 		isopen = true;
 	}
 }
@@ -124,11 +155,13 @@ void idle() {
 		default: break;
 		}
 
+		nowframe = vid.get(CAP_PROP_POS_FRAMES);
 		switch (playmod) {
 		case PLAY_BACK_FAST:
 		case PLAY_BACK:
-			if (nowframe <= 1) {
+			if (nowframe <= 0) {
 				vid.set(CAP_PROP_POS_FRAMES, 1);
+				nowframe = vid.get(CAP_PROP_POS_FRAMES);
 				cout << "처음" << nowframe << endl;
 				pause_handler(1);
 				break;
@@ -136,19 +169,35 @@ void idle() {
 		case PLAY_FORWARD:
 		case PLAY_FORWARD_FAST:
 			if (nowframe >= vid_framecount) {//vid_framecount을 초과한 경우
-				
-				cout << "마지막" << vid.set(CAP_PROP_POS_AVI_RATIO, 1) << endl;
+				vid.set(CAP_PROP_POS_FRAMES, vid_framecount);
+				nowframe = vid.get(CAP_PROP_POS_FRAMES);
+				cout << "마지막(1) " << nowframe << endl;
 				pause_handler(1);
 				break;
 			}
 
-			if (nowframe >= 1 && nowframe < vid_framecount) {//정상 재생중
+			if (frame.empty()) {
+				vid.set(CAP_PROP_POS_FRAMES, vid_framecount);
+				nowframe = vid.get(CAP_PROP_POS_FRAMES);
+				cout << "마지막(2) " << nowframe << endl;
+				pause_handler(1);
+				break;
+			}
+
+			if (nowframe >= 0 && !frame.empty()) {//정상 재생중
 				vid >> frame;
-				imshow("frame", frame);
+
+				wrap();
+
+				imshow(Filename, frame);
+
 				framebar = nowframe = vid.get(CAP_PROP_POS_FRAMES);
 				cout << "정상 재생중" << nowframe << endl;
-				if (nowframe == vid_framecount) {
-					vid.set(CAP_PROP_POS_FRAMES, vid_framecount - 1);
+				if (nowframe >= vid_framecount) {
+					vid.set(CAP_PROP_POS_FRAMES, vid_framecount);
+					nowframe = vid.get(CAP_PROP_POS_FRAMES);
+					cout << "마지막(3) " << nowframe << endl;
+					pause_handler(1);
 					break;
 				}
 				waitKey(vid_msec);
@@ -159,6 +208,19 @@ void idle() {
 		}
 	}
 	glui->sync_live();
+}
+void wrap() {
+	if (iswrap) {
+		Point2f inputp[4], outputp[4];
+		inputp[0] = Point2f(0, 0);			inputp[2] = Point2f(frame.cols, 0);
+		inputp[1] = Point2f(0, frame.rows);	inputp[3] = Point2f(frame.cols, frame.rows);
+
+		outputp[0] = Point2f(now_dot_pos[0][0], now_dot_pos[0][1]);	outputp[2] = Point2f(now_dot_pos[2][0], now_dot_pos[2][1]);
+		outputp[1] = Point2f(now_dot_pos[1][0], now_dot_pos[1][1]);	outputp[3] = Point2f(now_dot_pos[3][0], now_dot_pos[3][1]);
+
+		Mat h = getPerspectiveTransform(inputp, outputp);
+		warpPerspective(frame, frame, h, frame.size());
+	}
 }
 void Changemod(int id) {
 	switch (id) {
@@ -191,7 +253,6 @@ void Changemod(int id) {
 	//cout << playmod << endl;
 }
 
-bool ispause = true;
 void pause_handler(int id) {
 	if (ispause == true) {//ispause = true 였다면 toggle
 		ispause = false;
@@ -224,9 +285,154 @@ void pause_handler(int id) {
 void frame_handler(int id) {
 	vid.set(CAP_PROP_POS_FRAMES, framebar);
 	vid >> frame;
-	imshow("frame", frame);
+	imshow(Filename, frame);
 }
 
+
+void translation_handler(int index) {
+	//x=현재x + 이동값x, y=현재y-이동값y
+	float x = now_dot_pos[index][0] + trans_dot_pos[index][0];
+	float y = now_dot_pos[index][1] - trans_dot_pos[index][1];
+
+	float dx = x - prev_pos[index][0];//x이동 거리 계산
+	//now_dot_pos[index][0] += dx;//x이동 거리 적용
+	prev_pos[index][0] = x;//이전 좌표 저장
+
+	float dy = y - prev_pos[index][1];//x이동 거리 계산
+	//now_dot_pos[index][1] += dy;//x이동 거리 적용
+	prev_pos[index][1] = y;//이전 좌표 저장
+
+}
+
+void translation(int id) {
+
+
+
+	//	switch (id) {
+	//case 0:
+	//	translation_handler(0);
+	//	break;
+	//case 1:
+	//	translation_handler(1);
+	//	break;
+	//case 2:
+	//	translation_handler(2);
+	//	break;
+	//case 3:
+	//	translation_handler(3);
+	//	break;
+	//}
+	//switch (id) {
+	//case 0:
+	//	now_dot_pos[0][0] = now_dot_pos[0][0] + trans_dot_pos[0][0];
+	//	now_dot_pos[0][1] = now_dot_pos[0][1] - trans_dot_pos[0][1];
+	//	cout << trans_dot_pos[0][0] << ", " << trans_dot_pos[0][1] << endl;
+	//	break;
+	//case 1:
+	//	now_dot_pos[1][0] = now_dot_pos[1][0] + trans_dot_pos[1][0];
+	//	now_dot_pos[1][1] = now_dot_pos[1][1] - trans_dot_pos[1][1];
+	//	cout << trans_dot_pos[1][0] << ", " << trans_dot_pos[1][1] << endl;
+	//	break;
+	//case 2:
+	//	now_dot_pos[2][0] = now_dot_pos[2][0] + trans_dot_pos[2][0];
+	//	now_dot_pos[2][1] = now_dot_pos[2][1] - trans_dot_pos[2][1];
+	//	cout << trans_dot_pos[2][0] << ", " << trans_dot_pos[2][1] << endl;
+	//	break;
+	//case 3:
+	//	now_dot_pos[3][0] = now_dot_pos[3][0] + trans_dot_pos[3][0];
+	//	now_dot_pos[3][1] = now_dot_pos[3][1] - trans_dot_pos[3][1];
+	//	cout << trans_dot_pos[3][0] << ", " << trans_dot_pos[3][1] << endl;
+	//	break;
+	//}
+
+	switch (id) {
+	case 0:
+		now_dot_pos[0][0] =  trans_dot_pos[0][0];
+		now_dot_pos[0][1] = -trans_dot_pos[0][1];
+		cout << trans_dot_pos[0][0] << ", " << trans_dot_pos[0][1] << endl;
+		break;
+	case 1:
+		now_dot_pos[1][0] = trans_dot_pos[1][0];
+		now_dot_pos[1][1] = -trans_dot_pos[1][1];
+		cout << trans_dot_pos[1][0] << ", " << trans_dot_pos[1][1] << endl;
+		break;
+	case 2:
+		now_dot_pos[2][0] = trans_dot_pos[2][0];
+		now_dot_pos[2][1] = -trans_dot_pos[2][1];
+		cout << trans_dot_pos[2][0] << ", " << trans_dot_pos[2][1] << endl;
+		break;
+	case 3:
+		now_dot_pos[3][0] = trans_dot_pos[3][0];
+		now_dot_pos[3][1] = -trans_dot_pos[3][1];
+		cout << trans_dot_pos[3][0] << ", " << trans_dot_pos[3][1] << endl;
+		break;
+	}
+
+	//glui->sync_live();
+	/*
+		dots[0]->set_float_array_val(set_dots);
+		dots[1]->set_float_array_val(set_dots);
+		dots[2]->set_float_array_val(set_dots);
+		dots[3]->set_float_array_val(set_dots);*/
+		//switch (id) {
+		//case 0:
+		//	prev_pos[0][0] = dot_pos[0][0];
+		//	prev_pos[0][1] = -dot_pos[0][1];
+		//	dot_pos[0][1] = -dot_pos[0][1];
+		//	dots[0]->set_float_array_val(prev_pos[0]);
+		//	cout << dot_pos[0][0] << ", " << dot_pos[0][1] << endl;
+		//	break;
+		//case 1:
+		//	prev_pos[1][0] = dot_pos[1][0];
+		//	prev_pos[1][1] = -dot_pos[1][1];
+		//	dot_pos[1][1] = -dot_pos[1][1];
+		//	dots[1]->set_float_array_val(prev_pos[1]);
+		//	break;
+		//case 2:
+		//	dot_pos[2][1] = -dot_pos[2][1];
+		//	break;
+		//case 3:
+		//	dot_pos[3][1] = -dot_pos[3][1];
+		//	break;
+		//}
+}
+
+int red, green, blue, drawing = false;
+
+void drawCircle(int event, int x, int y, int, void* param) {
+	if(isdrawing){
+		if (event == EVENT_LBUTTONDOWN)
+			drawing = true;
+		else if (event == EVENT_MOUSEMOVE) {
+			if (drawing == true)
+				circle(frame, Point(x, y), 3, Scalar(blue, green, red), 10);
+		}
+		else if (event == EVENT_LBUTTONUP)
+			drawing = false;
+		imshow(Filename, frame);
+		//cap << frame;
+	}
+}
+
+void radioButtonCallback(int id) {
+	switch (selected_point) {
+	case 0:
+		dots[1]->disable(); dots[2]->disable(); dots[3]->disable(); break;
+	case 1:
+		//dots[1]->enable();
+		dots[0]->disable(); dots[2]->disable(); dots[3]->disable(); break;
+	case 2:
+		//dots[2]->enable();
+		dots[0]->disable(); dots[1]->disable(); dots[3]->disable(); break;
+	case 3:
+		//dots[3]->enable();
+		dots[0]->disable(); dots[1]->disable(); dots[2]->disable(); break;
+	}
+
+	dots[selected_point]->set_float_array_val(set_dots[selected_point]);
+	dots[selected_point]->enable();
+	glui->sync_live();
+}
 int main(int argc, char* argv[])
 {
 	glutInit(&argc, argv);
@@ -258,14 +464,38 @@ int main(int argc, char* argv[])
 	btn[4]->set_w(30);
 	playbutton->disable();
 
+	movedots = glui->add_panel("Move", GLUI_PANEL_EMBOSSED);
+	dots[0] = glui->add_translation_to_panel(movedots, "Left Top",		GLUI_TRANSLATION_XY, trans_dot_pos[0], 0, translation);
+	dots[1] = glui->add_translation_to_panel(movedots, "Left Bottom",	GLUI_TRANSLATION_XY, trans_dot_pos[1], 1, translation);
+	glui->add_column_to_panel(movedots, false);
+	dots[2] = glui->add_translation_to_panel(movedots, "Right Top",		GLUI_TRANSLATION_XY, trans_dot_pos[2], 2, translation);
+	dots[3] = glui->add_translation_to_panel(movedots, "Right Bottom",	GLUI_TRANSLATION_XY, trans_dot_pos[3], 3, translation);
+	movedots->disable();
+
 	glui->add_column(false);
+
+	checkboxes = glui->add_panel("Settings", GLUI_PANEL_EMBOSSED);
+	glui->add_checkbox_to_panel(checkboxes, "Wrap", &iswrap);
+	glui->add_checkbox_to_panel(checkboxes, "Draw", &isdrawing);
+	//glui->add_checkbox_to_panel(checkboxes, "Wrap", &isdraw);
+	checkboxes->disable();
+
+	radiobutton = glui->add_panel("Move", GLUI_PANEL_EMBOSSED);
+	radiogroup=glui->add_radiogroup_to_panel(radiobutton, &selected_point, 0, radioButtonCallback);
+	glui->add_radiobutton_to_group(radiogroup, "Left Top");
+	glui->add_radiobutton_to_group(radiogroup, "Left Bottom");
+	glui->add_column_to_panel(radiobutton, false);
+	glui->add_radiobutton_to_group(radiogroup, "Right Top");
+	glui->add_radiobutton_to_group(radiogroup, "Right Bottom");
+	radiobutton->disable();
+
 	glui->add_button("Open", 0, OpenVideo);
 	btn_save = glui->add_button("Save", 0, SaveVideo);
 	btn_save->disable();
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
 
 	glui->set_main_gfx_window(main_window);
-	//glutIdleFunc(idle);
+
 	glutMainLoop();
 	return EXIT_SUCCESS;
 }
