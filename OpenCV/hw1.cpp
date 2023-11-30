@@ -19,7 +19,7 @@ int main_window;
 String Filename;
 Mat src;
 VideoCapture vid;
-Mat frame, output_frame, frame_for_hist;
+Mat frame, output_frame, frame_for_hist, frame_pause;
 bool isopen = false;
 int playmod = PLAY_STOP;
 int vid_fps, vid_msec, vid_framecount, vid_width, vid_height;
@@ -44,17 +44,19 @@ int isdrawing = false;
 float set_dots[4][2] = { 0 };
 int selected_point;
 
-void wrap();
+
+void idle_pause();
 void pause_handler(int id = -1);
 void drawCircle(int event, int x, int y, int, void* param);
 void radioButtonCallback(int id);
 
-
-
+//기능들
+void CannyThreshold(Mat& frame_c);
+void wrap(Mat& frame_w);
+void showHist(Mat& in, int index);
 
 
 void just_sync(int id);
-void CannyThreshold(int id);
 void HistogramEqualize(int id);
 void Threshold(int id);
 
@@ -72,48 +74,55 @@ int blur_size = 3;
 void just_sync(int id) {
 	glui->sync_live();
 }
+
 #define CANNY 0
 #define THRESHOLD 1
 #define HISTEQ 2
 
+void effectpack(Mat& frame_e) {
+	showHist(frame_e, 0);
 
-void drawHist(Mat& out, int hist[], char mode)
-{
-	int hist_h = 400;  // 히스토그램 영상의 높이
+	CannyThreshold(frame_e);
+	wrap(frame_e);
+
+	showHist(frame_e, 1);
+}
+
+void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
+{	
+	int hist_h = vid_height/4;  // 히스토그램 영상의 높이
 	Mat histImg(hist_h, 512, CV_8UC3, Scalar(0, 0, 0)); // 영상버퍼
 
-	Scalar colorB, colorG, colorR, colorK;  // 히스토그램 색상
-	switch (mode) {
-	case 'C':
-		colorB = Scalar(255, 0, 0); break;  // 파란색
-		colorG = Scalar(0, 255, 0); break;  // 초록색
-		colorR = Scalar(0, 0, 255); break;  // 빨간색
-	case 'K':
-		colorK = Scalar(0, 0, 0); break;     // 검정색
-	}
+	Scalar colorB, colorG, colorR; // 히스토그램 색상
+		colorB = Scalar(255, 0, 0);  // 파란색
+		colorG = Scalar(0, 255, 0);  // 초록색
+		colorR = Scalar(0, 0, 255); // 빨간색
 	// 히스토그램에서 최대값을 찾는다. 
-	int max = hist[0];
-	for (int i = 1; i < 256; i++)
-		if (max < hist[i])
-			max = hist[i];
+	int max = histB[0];
+	for (int i = 0; i < 256; i++) {
+		if (max < histB[i])
+			max = histB[i];
+		if (max < histG[i])
+			max = histG[i];
+		if (max < histR[i])
+			max = histR[i];
+	}
 	// 히스토그램 배열을 최대값(최대 높이)으로 정규화. 
-	for (int i = 0; i <= 255; i++)
-		hist[i] = floor(((double)hist[i] / max) * hist_h);
-	// 히스토그램을 막대그래프로 그린다. 
 	for (int i = 0; i <= 255; i++) {
-		switch (mode) {
-		case 'C':
-			line(histImg, Point(2 * i, hist_h), Point(2 * i, hist_h - hist[i]), colorB);
-			line(histImg, Point(2 * i, hist_h), Point(2 * i, hist_h - hist[i]), colorG);
-			line(histImg, Point(2 * i, hist_h), Point(2 * i, hist_h - hist[i]), colorR);
-		case 'K':
-			line(histImg, Point(2 * i, hist_h), Point(2 * i, hist_h - hist[i]), colorK);
-		}
+		histB[i] = floor(((double)histB[i] / max) * hist_h);
+		histG[i] = floor(((double)histG[i] / max) * hist_h);
+		histR[i] = floor(((double)histR[i] / max) * hist_h);
+	}
+	// 히스토그램을 막대그래프로 그린다. 
+	for (int i = 0; i <= 255*3; i++) {
+			line(histImg, Point(2 * i,   hist_h), Point(2 * i,   hist_h - histB[i]), colorB);
+			line(histImg, Point(2 * i+1, hist_h), Point(2 * i+1, hist_h - histG[i]), colorG);
+			line(histImg, Point(2 * i+2, hist_h), Point(2 * i+2, hist_h - histR[i]), colorR);
 	}
 
-	Mat C1(out, Rect(0, 0, histImg.cols, histImg.rows));
-	histImg.copyTo(C1);
-	imshow("Histogram", histImg);
+	//Mat C(out, Rect(0, 0, histImg.cols, histImg.rows));
+	histImg.copyTo(out);
+	//imshow("Histogram", histImg);
 	//switch (mode) {
 	//case 'B': imshow("Histogram Blue", histImg); break;
 	//case 'G': imshow("Histogram Green", histImg); break;
@@ -122,13 +131,14 @@ void drawHist(Mat& out, int hist[], char mode)
 	//}
 };
 
-void showHist(Mat& in, Mat& out) {
+void showHist(Mat& in, int index) {
+	Mat histogram, hist_after;
 	if (in.channels() == 1) { // GrayScale 영상 경우
 		int hist[256] = { 0 };
 		for (int y = 0; y < in.rows; y++)
 			for (int x = 0; x < in.cols; x++)
 				hist[(int)in.at<uchar>(y, x)]++;
-		drawHist(out, hist, 'K');
+		drawHist(histogram, 'K', hist, hist, hist);
 	}
 	else {  // Color 영상 경우
 		int hist[3][256] = { 0 };
@@ -136,17 +146,18 @@ void showHist(Mat& in, Mat& out) {
 			for (int x = 0; x < in.cols; x++)
 				for (int c = 0; c < 3; c++)
 					hist[c][(int)in.at<Vec3b>(y, x)[c]]++;
-		drawHist(out, hist[0], 'C');
+		drawHist(histogram, 'C', hist[0], hist[1], hist[2]);
 	}
+
+	//Mat C(frame, Rect(0, 0, histogram.cols, histogram.rows));
+	//bitwise_or(histogram, C, frame);
+	//histogram.copyTo(C);
+	if(index==0)
+		imshow("Before Histogram", histogram);
+	else
+		imshow("After Histogram", histogram);
+	//imshow("Before Histogram", C);
 }
-
-
-
-
-
-
-
-
 
 void CannyThreshold(Mat& frame_c) {
 	if (mode == CANNY) {
@@ -185,15 +196,6 @@ void Canny_ui() {
 	scrollbar_blursize->set_speed(0.001);
 }
 
-
-
-
-
-
-
-
-
-
 int open() {
 	OpenFileDialog* openFileDialog = new OpenFileDialog();
 	if (openFileDialog->ShowDialog()) {
@@ -202,6 +204,7 @@ int open() {
 	}
 	else return(-1);
 }
+
 String SaveFilename;
 int Save() {
 	SaveFileDialog* openFileDialog = new SaveFileDialog();
@@ -223,13 +226,7 @@ int Save() {
 			}
 
 			//영상처리
-			//CannyThreshold(0);
-
-
-
-
-
-
+			effectpack(output_frame);
 
 			output << output_frame;
 			imshow(SaveFilename, output_frame);
@@ -282,6 +279,7 @@ void OpenVideo(int id) {
 		
 		setMouseCallback(Filename, drawCircle);
 
+		GLUI_Master.set_glutIdleFunc(idle_pause);
 		isopen = true;
 	}
 }
@@ -337,16 +335,10 @@ void idle() {
 
 			if (nowframe >= 0 && !frame.empty()) {//정상 재생중
 				vid >> frame;
-				frame_for_hist = frame;
-
-				wrap();
-
-				CannyThreshold(frame);
-
-				showHist(frame_for_hist, frame);
+				
+				effectpack(frame);
 
 				imshow(Filename, frame);
-
 				framebar = nowframe = vid.get(CAP_PROP_POS_FRAMES);
 				cout << "정상 재생중" << nowframe << endl;
 				if (nowframe >= vid_framecount) {
@@ -365,18 +357,32 @@ void idle() {
 	}
 	glui->sync_live();
 }
+bool transing = false;
+//void idle_pause() {
+//
+//	if (transing)
+//	{
+//		transing = false;
+//		frame_pause.copyTo(frame);
+//		//CannyThreshold(frame);
+//		//showHist(frame, 1);
+//		//wrap();
+//		//imshow(Filename, frame);
+//		//glui->sync_live();
+//	}
+//}
 
-void wrap() {
+void wrap(Mat& frame_w) {
 	if (iswrap) {
 		Point2f inputp[4], outputp[4];
-		inputp[0] = Point2f(0, 0);			inputp[2] = Point2f(frame.cols, 0);
-		inputp[1] = Point2f(0, frame.rows);	inputp[3] = Point2f(frame.cols, frame.rows);
+		inputp[0] = Point2f(0, 0);			inputp[2] = Point2f(frame_w.cols, 0);
+		inputp[1] = Point2f(0, frame_w.rows);	inputp[3] = Point2f(frame_w.cols, frame_w.rows);
 
 		outputp[0] = Point2f(now_dot_pos[0][0], now_dot_pos[0][1]);	outputp[2] = Point2f(now_dot_pos[2][0], now_dot_pos[2][1]);
 		outputp[1] = Point2f(now_dot_pos[1][0], now_dot_pos[1][1]);	outputp[3] = Point2f(now_dot_pos[3][0], now_dot_pos[3][1]);
 
 		Mat h = getPerspectiveTransform(inputp, outputp);
-		warpPerspective(frame, frame, h, frame.size());
+		warpPerspective(frame_w, frame_w, h, frame_w.size());
 	}
 }
 
@@ -411,6 +417,7 @@ void pause_handler(int id) {
 	}
 	else {//ispause = false 였다면 toggle
 		ispause = true;
+		frame.copyTo(frame_pause);
 		GLUI_Master.set_glutIdleFunc(NULL);
 	}
 	if (id == 0) {
@@ -419,6 +426,7 @@ void pause_handler(int id) {
 	}
 	else if (id == 1) {
 		ispause = true;
+		frame.copyTo(frame_pause);
 		GLUI_Master.set_glutIdleFunc(NULL);
 	}
 }
@@ -452,6 +460,7 @@ void translation(int id) {
 		cout << trans_dot_pos[3][0] << ", " << trans_dot_pos[3][1] << endl;
 		break;
 	}
+	transing = true;
 }
 
 int red, green, blue, drawing = false;
@@ -517,7 +526,8 @@ int main(int argc, char* argv[])
 	btn[4]->set_w(30);
 	playbutton->disable();
 
-	movedots = glui->add_panel("Move", GLUI_PANEL_EMBOSSED);
+	GLUI_Panel*move = glui->add_panel("Move", GLUI_PANEL_NONE);
+	movedots = glui->add_panel_to_panel(move, "Move", GLUI_PANEL_EMBOSSED);
 	dots[0] = glui->add_translation_to_panel(movedots, "Left Top",		GLUI_TRANSLATION_XY, trans_dot_pos[0], 0, translation);
 	dots[1] = glui->add_translation_to_panel(movedots, "Left Bottom",	GLUI_TRANSLATION_XY, trans_dot_pos[1], 1, translation);
 	glui->add_column_to_panel(movedots, false);
@@ -525,14 +535,9 @@ int main(int argc, char* argv[])
 	dots[3] = glui->add_translation_to_panel(movedots, "Right Bottom",	GLUI_TRANSLATION_XY, trans_dot_pos[3], 3, translation);
 	movedots->disable();
 
-	glui->add_column(false);
+	glui->add_column_to_panel(move, false);
 
-	checkboxes = glui->add_panel("Settings", GLUI_PANEL_EMBOSSED);
-	glui->add_checkbox_to_panel(checkboxes, "Wrap", &iswrap);
-	glui->add_checkbox_to_panel(checkboxes, "Draw", &isdrawing);
-	checkboxes->disable();
-
-	radiobutton = glui->add_panel("Move", GLUI_PANEL_EMBOSSED);
+	radiobutton = glui->add_panel_to_panel(move, "Move", GLUI_PANEL_EMBOSSED);
 	radiogroup=glui->add_radiogroup_to_panel(radiobutton, &selected_point, 0, radioButtonCallback);
 	glui->add_radiobutton_to_group(radiogroup, "Left Top");
 	glui->add_radiobutton_to_group(radiogroup, "Left Bottom");
@@ -541,12 +546,21 @@ int main(int argc, char* argv[])
 	glui->add_radiobutton_to_group(radiogroup, "Right Bottom");
 	radiobutton->disable();
 
+	glui->add_column(false);
+
+	checkboxes = glui->add_panel("Settings", GLUI_PANEL_EMBOSSED);
+	glui->add_checkbox_to_panel(checkboxes, "Wrap", &iswrap);
+	glui->add_checkbox_to_panel(checkboxes, "Draw", &isdrawing);
+	checkboxes->disable();
+
+	Canny_ui();
+
+
 	glui->add_button("Open", 0, OpenVideo);
 	btn_save = glui->add_button("Save", 0, SaveVideo);
 	btn_save->disable();
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
 
-	Canny_ui();
 
 	glui->set_main_gfx_window(main_window);
 	glutMainLoop();
