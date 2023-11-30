@@ -19,11 +19,14 @@ int main_window;
 String Filename;
 Mat src;
 VideoCapture vid;
-Mat frame, output_frame, frame_for_hist, frame_pause;
+Mat frame, output_frame, frame_for_hist, frame_pause, frame_cd;
 bool isopen = false;
 int playmod = PLAY_STOP;
 int vid_fps, vid_msec, vid_framecount, vid_width, vid_height;
 bool ispause = true;
+
+double settest = 0;
+int nowframe = 0;
 
 GLUI* glui; 
 GLUI_Panel* playbutton;
@@ -35,17 +38,26 @@ GLUI_Panel* checkboxes;
 GLUI_Panel* radiobutton;
 GLUI_RadioGroup* radiogroup;
 GLUI_Translation* dots[4];
+
+GLUI_Rollout* rollout_canny;
+GLUI_Checkbox* houghlines, *houghcircles;
 int framebar;
 float trans_dot_pos[4][3] = { 0.0 };
 float now_dot_pos[4][3] = { 0.0 };
 float prev_pos[4][3] = { 0.0 };
 int iswrap = true;
+int iscanny = false;
+int isrmbg = false;
+int ishist = false;
+int isline = true;
+int iscircle = false;
+
 int isdrawing = false;
 float set_dots[4][2] = { 0 };
 int selected_point;
 
 
-void idle_pause();
+//void idle_pause();
 void pause_handler(int id = -1);
 void drawCircle(int event, int x, int y, int, void* param);
 void radioButtonCallback(int id);
@@ -54,7 +66,8 @@ void radioButtonCallback(int id);
 void CannyThreshold(Mat& frame_c);
 void wrap(Mat& frame_w);
 void showHist(Mat& in, int index);
-
+void remove_background(Mat& frame_b);
+void Hough_circles(Mat& frame_cir);
 
 void just_sync(int id);
 void HistogramEqualize(int id);
@@ -68,24 +81,84 @@ void Threshold_ui();
 int mode = 0;
 
 //canny
-int lowTh = 1, ratioo = 3, kernel_size = 3, max_lowTh = 100;
+int lowTh = 40, ratioo = 3, kernel_size = 3, max_lowTh = 100;
 int blur_size = 3;
 
 void just_sync(int id) {
-	glui->sync_live();
+	GLUI_Master.sync_live_all();
 }
 
-#define CANNY 0
-#define THRESHOLD 1
-#define HISTEQ 2
+#define CANNY 1
+#define THRESHOLD 2
+#define HISTEQ 3
+#define WRAP 4
+#define DRAWING 5
+#define HISTOGRAM 6
+#define RMBACKGROUND 7
+#define HOUGHLINES 8
+#define HOUGHCIRCLES 9
 
 void effectpack(Mat& frame_e) {
 	showHist(frame_e, 0);
 
+	remove_background(frame_e);
 	CannyThreshold(frame_e);
-	wrap(frame_e);
+	Hough_circles(frame_e);
 
+	wrap(frame_e);
 	showHist(frame_e, 1);
+}
+void checkbox_handler(int id) {
+	switch (id) {
+	case CANNY:
+		if (iscanny) {
+			rollout_canny->enable(); iscircle = false; houghcircles->disable();
+		}
+		else {
+			rollout_canny->disable(); houghcircles->enable();
+		} break;
+	case HOUGHLINES:
+		if (isline) {
+		}
+		else {
+		} break;
+	case HOUGHCIRCLES:
+		if (iscircle) {}
+		else {
+		} break;
+	case THRESHOLD:		break;
+	case HISTEQ:		break;
+	case WRAP:
+		if (iswrap) { radiobutton->enable(); dots[selected_point]->enable(); }
+		else {
+			radiobutton->disable();
+			dots[selected_point]->disable();
+		} break;
+	case DRAWING:		if (isdrawing) {}
+				else {} break;
+	case HISTOGRAM:
+		if (ishist) {}
+		else {
+			destroyWindow("Before Histogram"); destroyWindow("After Histogram");
+		} break;
+	case RMBACKGROUND:	if (isrmbg) {}
+					 else {} break;
+	default: break;
+	}
+	GLUI_Master.sync_live_all();
+}
+Mat result; // MOG2에 의한 forground mask 영상
+Mat BGImg; // MOG2에 의한 background 영상
+void remove_background(Mat& frame_b) {
+	if (isrmbg) {
+		//Ptr<BackgroundSubtractor> pMOG2; //MOG2 배경 삭제 객체
+		//pMOG2 = createBackgroundSubtractorMOG2();
+		//pMOG2->apply(frame_b, result, -1);  // -1 : 자동갱신비율, 0 : 갱신안함, 1 : 이전영상
+		//pMOG2->getBackgroundImage(BGImg);
+		//imshow("FG Mask MOG 2", result);
+		//imshow("BG Image", BGImg);
+
+	}
 }
 
 void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
@@ -115,9 +188,9 @@ void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
 	}
 	// 히스토그램을 막대그래프로 그린다. 
 	for (int i = 0; i <= 255*3; i++) {
-			line(histImg, Point(2 * i,   hist_h), Point(2 * i,   hist_h - histB[i]), colorB);
-			line(histImg, Point(2 * i+1, hist_h), Point(2 * i+1, hist_h - histG[i]), colorG);
-			line(histImg, Point(2 * i+2, hist_h), Point(2 * i+2, hist_h - histR[i]), colorR);
+			line(histImg, Point(3 * i,   hist_h), Point(3 * i,   hist_h - histB[i]), colorB);
+			line(histImg, Point(3 * i+1, hist_h), Point(3*i+1, hist_h - histG[i]), colorG);
+			line(histImg, Point(3 * i+2, hist_h), Point(3 * i+2, hist_h - histR[i]), colorR);
 	}
 
 	//Mat C(out, Rect(0, 0, histImg.cols, histImg.rows));
@@ -132,55 +205,64 @@ void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
 };
 
 void showHist(Mat& in, int index) {
-	Mat histogram, hist_after;
-	if (in.channels() == 1) { // GrayScale 영상 경우
-		int hist[256] = { 0 };
-		for (int y = 0; y < in.rows; y++)
-			for (int x = 0; x < in.cols; x++)
-				hist[(int)in.at<uchar>(y, x)]++;
-		drawHist(histogram, 'K', hist, hist, hist);
+	if (ishist) {
+		Mat histogram, hist_after;
+		if (in.channels() == 1) { // GrayScale 영상 경우
+			int hist[256] = { 0 };
+			for (int y = 0; y < in.rows; y++)
+				for (int x = 0; x < in.cols; x++)
+					hist[(int)in.at<uchar>(y, x)]++;
+			drawHist(histogram, 'K', hist, hist, hist);
+		}
+		else {  // Color 영상 경우
+			int hist[3][256] = { 0 };
+			for (int y = 0; y < in.rows; y++)
+				for (int x = 0; x < in.cols; x++)
+					for (int c = 0; c < 3; c++)
+						hist[c][(int)in.at<Vec3b>(y, x)[c]]++;
+			drawHist(histogram, 'C', hist[0], hist[1], hist[2]);
+		}
+		//Mat C(frame, Rect(0, 0, histogram.cols, histogram.rows));
+		//bitwise_or(histogram, C, frame);
+		//histogram.copyTo(C);
+		if (index == 0)
+			imshow("Before Histogram", histogram);
+		else
+			imshow("After Histogram", histogram);
+		//imshow("Before Histogram", C);
 	}
-	else {  // Color 영상 경우
-		int hist[3][256] = { 0 };
-		for (int y = 0; y < in.rows; y++)
-			for (int x = 0; x < in.cols; x++)
-				for (int c = 0; c < 3; c++)
-					hist[c][(int)in.at<Vec3b>(y, x)[c]]++;
-		drawHist(histogram, 'C', hist[0], hist[1], hist[2]);
-	}
-
-	//Mat C(frame, Rect(0, 0, histogram.cols, histogram.rows));
-	//bitwise_or(histogram, C, frame);
-	//histogram.copyTo(C);
-	if(index==0)
-		imshow("Before Histogram", histogram);
-	else
-		imshow("After Histogram", histogram);
-	//imshow("Before Histogram", C);
 }
 
 void CannyThreshold(Mat& frame_c) {
-	if (mode == CANNY) {
+	if (iscanny) {
 		Mat dst;
 		dst.create(frame_c.size(), frame_c.type());
 		blur(frame_c, dst, Size(blur_size, blur_size));
 		Canny(dst, frame_c, lowTh, lowTh * ratioo, kernel_size);
 		dst = Scalar::all(0);
 		frame_c.copyTo(dst, frame_c);
+
+		if (isline) {
+			cvtColor(frame_c, frame_cd, COLOR_GRAY2BGR); // 허프변환에 의해 검출된 선을 붉은색
+			// 으로 표시하기 위해 컬러로 변환
+			vector<Vec4i> lines;  // 검출된 직선의 양끝점 좌표를 저장하기 위한 버퍼
+			HoughLinesP(frame_c, lines, 1, CV_PI / 180, 50, 100, 20);
+			for (size_t i = 0; i < lines.size(); i++) {
+				Vec4i l = lines[i];
+				line(frame_cd, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, LINE_AA);
+			}
+			frame_cd.copyTo(frame_c);
+		}
 	}
-	glui->sync_live();
+	GLUI_Master.sync_live_all();
 }
 
 void Canny_ui() {
-	GLUI_EditText* edittext_lowTh, * edittext_blur_size;
-	GLUI_Rollout* rollout_canny = glui->add_rollout("Canny");
+	rollout_canny = glui->add_rollout("Canny");
 	GLUI_Panel* panel_canny = glui->add_panel_to_panel(rollout_canny, "Canny Settings");
 
-	edittext_lowTh = new GLUI_EditText(panel_canny, "LowTh : ", &lowTh, 0, just_sync);
-	edittext_blur_size = new GLUI_EditText(panel_canny, "BlurSize : ", &blur_size, 0, just_sync);
-
 	GLUI_Spinner* spinner_lowTh = glui->add_spinner_to_panel(panel_canny, "LowTh : ", GLUI_SPINNER_INT, &lowTh, 0, just_sync);
-	spinner_lowTh->set_int_limits(0, max_lowTh, GLUI_LIMIT_CLAMP);
+	spinner_lowTh->set_int_limits(1, max_lowTh, GLUI_LIMIT_CLAMP);
 	spinner_lowTh->set_speed(0.001);
 	GLUI_Spinner* spinner_blursize = glui->add_spinner_to_panel(panel_canny, "BlurSize : ", GLUI_SPINNER_INT, &blur_size, 0, just_sync);
 	spinner_blursize->set_int_limits(1, 10, GLUI_LIMIT_CLAMP);
@@ -189,12 +271,32 @@ void Canny_ui() {
 	glui->add_column_to_panel(panel_canny, false);
 
 	GLUI_Scrollbar* scrollbar_lowTh = new GLUI_Scrollbar(panel_canny, "lowTh", GLUI_SCROLL_HORIZONTAL, &lowTh, 0, just_sync);
-	scrollbar_lowTh->set_int_limits(0, max_lowTh, GLUI_LIMIT_CLAMP);
+	scrollbar_lowTh->set_int_limits(1, max_lowTh, GLUI_LIMIT_CLAMP);
 	scrollbar_lowTh->set_speed(0.001);
 	GLUI_Scrollbar* scrollbar_blursize = new GLUI_Scrollbar(panel_canny, "BlurSize", GLUI_SCROLL_HORIZONTAL, &blur_size, 0, just_sync);
 	scrollbar_blursize->set_int_limits(1, 10, GLUI_LIMIT_CLAMP);
 	scrollbar_blursize->set_speed(0.001);
 }
+
+
+void Hough_circles(Mat& frame_cir) {
+	if (iscircle) {
+		Mat gray;
+		cvtColor(frame_cir, gray, COLOR_BGR2GRAY);
+		GaussianBlur(gray, gray, Size(9, 9), 2, 2);
+		vector<Vec3f> circles;
+		HoughCircles(gray, circles, HOUGH_GRADIENT, 1, gray.rows / 8, 200, 50);
+		// 원을 영상 위에 그린다. 
+		for (size_t i = 0; i < circles.size(); i++) {
+			Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+			int radius = cvRound(circles[i][2]);
+			circle(frame_cir, center, 3, Scalar(0, 255, 0), -1, 8, 0); // 원의 중심을 그린다. 
+			circle(frame_cir, center, radius, Scalar(0, 0, 255), 3, 8, 0); // 원을 그린다.
+		}
+	}
+}
+
+
 
 int open() {
 	OpenFileDialog* openFileDialog = new OpenFileDialog();
@@ -206,7 +308,7 @@ int open() {
 }
 
 String SaveFilename;
-int Save() {
+int Save() {//all record 추가하기
 	SaveFileDialog* openFileDialog = new SaveFileDialog();
 	if (openFileDialog->ShowDialog()) {
 		SaveFilename = openFileDialog->FileName;
@@ -220,6 +322,9 @@ int Save() {
 		namedWindow(SaveFilename);
 		while (1) {
 			vid >> output_frame;
+			framebar = nowframe = vid.get(CAP_PROP_POS_FRAMES);
+			GLUI_Master.sync_live_all();
+
 			if (output_frame.empty()) {
 				cout << "Video END" << std::endl;
 				break;
@@ -279,13 +384,11 @@ void OpenVideo(int id) {
 		
 		setMouseCallback(Filename, drawCircle);
 
-		GLUI_Master.set_glutIdleFunc(idle_pause);
+		GLUI_Master.set_glutIdleFunc(idle);
 		isopen = true;
 	}
 }
 
-double settest = 0;
-int nowframe = 0;
 //다 되면 현재 재생 상태 화면에 띄워보기
 void idle() {
 	if (isopen) {
@@ -355,7 +458,7 @@ void idle() {
 		default: break;
 		}
 	}
-	glui->sync_live();
+	GLUI_Master.sync_live_all();
 }
 bool transing = false;
 //void idle_pause() {
@@ -368,7 +471,7 @@ bool transing = false;
 //		//showHist(frame, 1);
 //		//wrap();
 //		//imshow(Filename, frame);
-//		//glui->sync_live();
+//		//GLUI_Master.sync_live_all();
 //	}
 //}
 
@@ -464,7 +567,6 @@ void translation(int id) {
 }
 
 int red, green, blue, drawing = false;
-
 void drawCircle(int event, int x, int y, int, void* param) {
 	if(isdrawing){
 		if (event == EVENT_LBUTTONDOWN)
@@ -492,8 +594,10 @@ void radioButtonCallback(int id) {
 	}
 	dots[selected_point]->set_float_array_val(set_dots[selected_point]);
 	dots[selected_point]->enable();
-	glui->sync_live();
+	GLUI_Master.sync_live_all();
 }
+
+
 
 int main(int argc, char* argv[])
 {
@@ -549,8 +653,13 @@ int main(int argc, char* argv[])
 	glui->add_column(false);
 
 	checkboxes = glui->add_panel("Settings", GLUI_PANEL_EMBOSSED);
-	glui->add_checkbox_to_panel(checkboxes, "Wrap", &iswrap);
-	glui->add_checkbox_to_panel(checkboxes, "Draw", &isdrawing);
+	glui->add_checkbox_to_panel(checkboxes, "Wrap", &iswrap, WRAP, checkbox_handler);
+	glui->add_checkbox_to_panel(checkboxes, "Draw", &isdrawing, DRAWING, checkbox_handler);
+	glui->add_checkbox_to_panel(checkboxes, "Canny", &iscanny, CANNY, checkbox_handler);
+	houghlines = glui->add_checkbox_to_panel(checkboxes, "Hough Lines", &isline, HOUGHLINES, checkbox_handler);
+	houghcircles = glui->add_checkbox_to_panel(checkboxes, "Hough Circles", &iscircle, HOUGHCIRCLES, checkbox_handler);
+	glui->add_checkbox_to_panel(checkboxes, "Histogram", &ishist, HISTOGRAM, checkbox_handler);
+	glui->add_checkbox_to_panel(checkboxes, "Remove Background", &isrmbg, RMBACKGROUND, checkbox_handler);
 	checkboxes->disable();
 
 	Canny_ui();
