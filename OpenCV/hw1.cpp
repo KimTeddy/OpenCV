@@ -36,11 +36,12 @@ GLUI_Button* btn_save;
 GLUI_Panel* movedots;
 GLUI_Panel* checkboxes;
 GLUI_Panel* radiobutton;
+GLUI_Panel* panel_colormap;
 GLUI_RadioGroup* radiogroup;
 GLUI_Translation* dots[4];
 
 GLUI_Rollout* rollout_canny;
-GLUI_Checkbox* houghlines, *houghcircles;
+GLUI_Checkbox* houghlines, *houghcircles, * clahehisteq;
 int framebar;
 float trans_dot_pos[4][3] = { 0.0 };
 float now_dot_pos[4][3] = { 0.0 };
@@ -51,11 +52,15 @@ int isrmbg = false;
 int ishist = false;
 int isline = true;
 int iscircle = false;
+int iscolormap = false;
+int isgray = false;
+int ishisteq = false;
+int isclahe = false;
 
 int isdrawing = false;
 float set_dots[4][2] = { 0 };
 int selected_point;
-
+int colormap_type = COLORMAP_RAINBOW;
 
 //void idle_pause();
 void pause_handler(int id = -1);
@@ -68,9 +73,11 @@ void wrap(Mat& frame_w);
 void showHist(Mat& in, int index);
 void remove_background(Mat& frame_b);
 void Hough_circles(Mat& frame_cir);
+void ClaheHistequlize(Mat& frame_ch);
+void colormap(Mat& frame_cor);
+void Histeqalize(Mat& frame_h);
 
 void just_sync(int id);
-void HistogramEqualize(int id);
 void Threshold(int id);
 
 void idle();
@@ -88,22 +95,26 @@ void just_sync(int id) {
 	GLUI_Master.sync_live_all();
 }
 
-#define CANNY 1
-#define THRESHOLD 2
-#define HISTEQ 3
+#define CANNY 3
 #define WRAP 4
 #define DRAWING 5
 #define HISTOGRAM 6
 #define RMBACKGROUND 7
 #define HOUGHLINES 8
 #define HOUGHCIRCLES 9
+#define COLORMAP 10
+#define HISTEQ 11
+#define CLAHEHISTEQ 12
 
 void effectpack(Mat& frame_e) {
 	showHist(frame_e, 0);
 
-	remove_background(frame_e);
-	CannyThreshold(frame_e);
+	Histeqalize(frame_e);
 	Hough_circles(frame_e);
+	if(isgray) cvtColor(frame_e, frame_e, COLOR_BGR2GRAY);
+	colormap(frame_e);
+	CannyThreshold(frame_e);
+	remove_background(frame_e);
 
 	wrap(frame_e);
 	showHist(frame_e, 1);
@@ -126,8 +137,11 @@ void checkbox_handler(int id) {
 		if (iscircle) {}
 		else {
 		} break;
-	case THRESHOLD:		break;
-	case HISTEQ:		break;
+	case COLORMAP:
+		if (iscolormap) { panel_colormap->enable(); }
+		else {
+			panel_colormap->disable();
+		} break;
 	case WRAP:
 		if (iswrap) { radiobutton->enable(); dots[selected_point]->enable(); }
 		else {
@@ -142,22 +156,51 @@ void checkbox_handler(int id) {
 			destroyWindow("Before Histogram"); destroyWindow("After Histogram");
 		} break;
 	case RMBACKGROUND:	if (isrmbg) {}
-					 else {} break;
+					 else { destroyWindow("Background"); } break;
+	case HISTEQ:	if (ishisteq) { clahehisteq->enable(); }
+			   else { clahehisteq->disable(); } break;
 	default: break;
 	}
 	GLUI_Master.sync_live_all();
 }
+
+Mat src_ycrcb, ycrcb_planes[3];
+void Histeqalize(Mat& frame_h) {
+	if (ishisteq) {
+		cvtColor(frame_h, src_ycrcb, COLOR_BGR2YCrCb);
+		split(src_ycrcb, ycrcb_planes);
+
+		//밝기 성분에 대해 히스토그램 평활화 수행
+		if (isclahe) ClaheHistequlize(ycrcb_planes[0]);
+		else equalizeHist(ycrcb_planes[0], ycrcb_planes[0]);
+
+		merge(ycrcb_planes, 3, src_ycrcb);
+		cvtColor(src_ycrcb, frame_h, COLOR_YCrCb2BGR);
+	}
+}
+
+void ClaheHistequlize(Mat& frame_ch) {
+	if (isclahe) {
+		Mat clahehe;
+		Ptr<CLAHE> clahe;
+		clahe = createCLAHE(2.0, Size(8, 8));
+		clahe->apply(frame_ch, clahehe);
+		clahehe.copyTo(frame_ch);
+	}
+}
+
+
 Mat result; // MOG2에 의한 forground mask 영상
-Mat BGImg; // MOG2에 의한 background 영상
+Mat BGImg; // MOG2에 의한 background 영상//MOG2 배경 삭제 객체
+Ptr<BackgroundSubtractor> pMOG2 = createBackgroundSubtractorMOG2();
 void remove_background(Mat& frame_b) {
 	if (isrmbg) {
-		//Ptr<BackgroundSubtractor> pMOG2; //MOG2 배경 삭제 객체
-		//pMOG2 = createBackgroundSubtractorMOG2();
-		//pMOG2->apply(frame_b, result, -1);  // -1 : 자동갱신비율, 0 : 갱신안함, 1 : 이전영상
-		//pMOG2->getBackgroundImage(BGImg);
-		//imshow("FG Mask MOG 2", result);
-		//imshow("BG Image", BGImg);
-
+		Mat out;
+		pMOG2->apply(frame_b, result, -1);  // -1 : 자동갱신비율, 0 : 갱신안함, 1 : 이전영상
+		pMOG2->getBackgroundImage(BGImg);
+		frame_b.copyTo(out, result);
+		out.copyTo(frame_b);
+		imshow("Background", BGImg);
 	}
 }
 
@@ -233,9 +276,9 @@ void showHist(Mat& in, int index) {
 	}
 }
 
+Mat dst;
 void CannyThreshold(Mat& frame_c) {
 	if (iscanny) {
-		Mat dst;
 		dst.create(frame_c.size(), frame_c.type());
 		blur(frame_c, dst, Size(blur_size, blur_size));
 		Canny(dst, frame_c, lowTh, lowTh * ratioo, kernel_size);
@@ -276,12 +319,13 @@ void Canny_ui() {
 	GLUI_Scrollbar* scrollbar_blursize = new GLUI_Scrollbar(panel_canny, "BlurSize", GLUI_SCROLL_HORIZONTAL, &blur_size, 0, just_sync);
 	scrollbar_blursize->set_int_limits(1, 10, GLUI_LIMIT_CLAMP);
 	scrollbar_blursize->set_speed(0.001);
+
+	rollout_canny->disable();
 }
 
-
+Mat gray;
 void Hough_circles(Mat& frame_cir) {
 	if (iscircle) {
-		Mat gray;
 		cvtColor(frame_cir, gray, COLOR_BGR2GRAY);
 		GaussianBlur(gray, gray, Size(9, 9), 2, 2);
 		vector<Vec3f> circles;
@@ -296,9 +340,79 @@ void Hough_circles(Mat& frame_cir) {
 	}
 }
 
+void colormap(Mat& frame_cor) {
+	if (iscolormap) applyColorMap(frame_cor, frame_cor, colormap_type);
+}
+/*
+	COLORMAP_AUTUMN = 0, //!< ![autumn](pics/colormaps/colorscale_autumn.jpg)
+	COLORMAP_BONE = 1, //!< ![bone](pics/colormaps/colorscale_bone.jpg)
+	COLORMAP_JET = 2, //!< ![jet](pics/colormaps/colorscale_jet.jpg)
+	COLORMAP_WINTER = 3, //!< ![winter](pics/colormaps/colorscale_winter.jpg)
+	COLORMAP_RAINBOW = 4, //!< ![rainbow](pics/colormaps/colorscale_rainbow.jpg)
 
+	COLORMAP_OCEAN = 5, //!< ![ocean](pics/colormaps/colorscale_ocean.jpg)
+	COLORMAP_SUMMER = 6, //!< ![summer](pics/colormaps/colorscale_summer.jpg)
+	COLORMAP_SPRING = 7, //!< ![spring](pics/colormaps/colorscale_spring.jpg)
+	COLORMAP_COOL = 8, //!< ![cool](pics/colormaps/colorscale_cool.jpg)
+	COLORMAP_HSV = 9, //!< ![HSV](pics/colormaps/colorscale_hsv.jpg)
+
+	COLORMAP_PINK = 10, //!< ![pink](pics/colormaps/colorscale_pink.jpg)
+	COLORMAP_HOT = 11, //!< ![hot](pics/colormaps/colorscale_hot.jpg)
+	COLORMAP_PARULA = 12, //!< ![parula](pics/colormaps/colorscale_parula.jpg)
+	COLORMAP_MAGMA = 13, //!< ![magma](pics/colormaps/colorscale_magma.jpg)
+	COLORMAP_INFERNO = 14, //!< ![inferno](pics/colormaps/colorscale_inferno.jpg)
+
+	COLORMAP_PLASMA = 15, //!< ![plasma](pics/colormaps/colorscale_plasma.jpg)
+	COLORMAP_VIRIDIS = 16, //!< ![viridis](pics/colormaps/colorscale_viridis.jpg)
+	COLORMAP_CIVIDIS = 17, //!< ![cividis](pics/colormaps/colorscale_cividis.jpg)
+	COLORMAP_TWILIGHT = 18, //!< ![twilight](pics/colormaps/colorscale_twilight.jpg)
+	COLORMAP_TWILIGHT_SHIFTED = 19, //!< ![twilight shifted](pics/colormaps/colorscale_twilight_shifted.jpg)
+
+	COLORMAP_TURBO = 20, //!< ![turbo](pics/colormaps/colorscale_turbo.jpg)
+	COLORMAP_DEEPGREEN = 21  //!< ![deepgreen](pics/colormaps/colorscale_deepgreen.jpg)
+*/
+GLUI_Listbox* listbox_clrType;
+void colormap_ui() {
+	panel_colormap = glui->add_rollout("Colormap");
+	listbox_clrType = glui->add_listbox_to_panel(panel_colormap, "ColorType : ", &colormap_type, 0, just_sync);
+	listbox_clrType->add_item(COLORMAP_AUTUMN, "COLORMAP_AUTUMN");
+	listbox_clrType->add_item(COLORMAP_BONE, "COLORMAP_BONE");
+	listbox_clrType->add_item(COLORMAP_JET, "COLORMAP_JET");
+	listbox_clrType->add_item(COLORMAP_WINTER, "COLORMAP_WINTER");
+	listbox_clrType->add_item(COLORMAP_RAINBOW, "COLORMAP_RAINBOW");
+
+	listbox_clrType->add_item(COLORMAP_OCEAN, "COLORMAP_OCEAN");
+	listbox_clrType->add_item(COLORMAP_SUMMER, "COLORMAP_SUMMER");
+	listbox_clrType->add_item(COLORMAP_SPRING, "COLORMAP_SPRING");
+	listbox_clrType->add_item(COLORMAP_COOL, "COLORMAP_COOL");
+	listbox_clrType->add_item(COLORMAP_HSV, "COLORMAP_HSV");
+
+	listbox_clrType->add_item(COLORMAP_PINK, "COLORMAP_PINK");
+	listbox_clrType->add_item(COLORMAP_HOT, "COLORMAP_HOT");
+	listbox_clrType->add_item(COLORMAP_PARULA, "COLORMAP_PARULA");
+	listbox_clrType->add_item(COLORMAP_MAGMA, "COLORMAP_MAGMA");
+	listbox_clrType->add_item(COLORMAP_INFERNO, "COLORMAP_INFERNO");
+
+	listbox_clrType->add_item(COLORMAP_PLASMA, "COLORMAP_PLASMA");
+	listbox_clrType->add_item(COLORMAP_VIRIDIS, "COLORMAP_VIRIDIS");
+	listbox_clrType->add_item(COLORMAP_CIVIDIS, "COLORMAP_CIVIDIS");
+	listbox_clrType->add_item(COLORMAP_TWILIGHT, "COLORMAP_TWILIGHT");
+	listbox_clrType->add_item(COLORMAP_TWILIGHT_SHIFTED, "COLORMAP_TWILIGHT_SHIFTED");
+
+	listbox_clrType->add_item(COLORMAP_TURBO, "COLORMAP_TURBO");
+	listbox_clrType->add_item(COLORMAP_DEEPGREEN, "COLORMAP_DEEPGREEN");
+
+	glui->add_column_to_panel(panel_colormap, false);
+
+	/*GLUI_Scrollbar* scrollbar_clrType = new GLUI_Scrollbar(panel_colormap, "ColorType", GLUI_SCROLL_HORIZONTAL, &colormap_type, 0, just_sync);
+	scrollbar_clrType->set_int_limits(0, 21, GLUI_LIMIT_CLAMP);
+	scrollbar_clrType->set_speed(0.001);*/
+	panel_colormap->disable();
+}
 
 int open() {
+	destroyAllWindows();
+	BGImg = Scalar::all(0);
 	OpenFileDialog* openFileDialog = new OpenFileDialog();
 	if (openFileDialog->ShowDialog()) {
 		Filename = openFileDialog->FileName;
@@ -322,6 +436,7 @@ int Save() {//all record 추가하기
 		namedWindow(SaveFilename);
 		while (1) {
 			vid >> output_frame;
+			//remove_background(output_frame);
 			framebar = nowframe = vid.get(CAP_PROP_POS_FRAMES);
 			GLUI_Master.sync_live_all();
 
@@ -372,6 +487,9 @@ void OpenVideo(int id) {
 		checkboxes->enable();
 		radiobutton->enable();
 
+		//rollout_canny->enable();
+		//panel_colormap->enable();
+
 		radioButtonCallback(0);
 
 		scrollbar_play->set_int_limits(1, vid_framecount-1, GLUI_LIMIT_CLAMP);
@@ -384,7 +502,7 @@ void OpenVideo(int id) {
 		
 		setMouseCallback(Filename, drawCircle);
 
-		GLUI_Master.set_glutIdleFunc(idle);
+		GLUI_Master.set_glutIdleFunc(NULL);
 		isopen = true;
 	}
 }
@@ -655,6 +773,9 @@ int main(int argc, char* argv[])
 	checkboxes = glui->add_panel("Settings", GLUI_PANEL_EMBOSSED);
 	glui->add_checkbox_to_panel(checkboxes, "Wrap", &iswrap, WRAP, checkbox_handler);
 	glui->add_checkbox_to_panel(checkboxes, "Draw", &isdrawing, DRAWING, checkbox_handler);
+	glui->add_checkbox_to_panel(checkboxes, "Colormap", &iscolormap, COLORMAP, checkbox_handler);
+	glui->add_checkbox_to_panel(checkboxes, "Histogram Equalize", &ishisteq, HISTEQ, checkbox_handler);
+	clahehisteq = glui->add_checkbox_to_panel(checkboxes, "Clahe Histogram Equalize", &isclahe, CLAHEHISTEQ, checkbox_handler);
 	glui->add_checkbox_to_panel(checkboxes, "Canny", &iscanny, CANNY, checkbox_handler);
 	houghlines = glui->add_checkbox_to_panel(checkboxes, "Hough Lines", &isline, HOUGHLINES, checkbox_handler);
 	houghcircles = glui->add_checkbox_to_panel(checkboxes, "Hough Circles", &iscircle, HOUGHCIRCLES, checkbox_handler);
@@ -663,7 +784,7 @@ int main(int argc, char* argv[])
 	checkboxes->disable();
 
 	Canny_ui();
-
+	colormap_ui();
 
 	glui->add_button("Open", 0, OpenVideo);
 	btn_save = glui->add_button("Save", 0, SaveVideo);
