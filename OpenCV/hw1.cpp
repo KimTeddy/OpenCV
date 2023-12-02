@@ -36,12 +36,12 @@ GLUI_Button* btn_save;
 GLUI_Panel* movedots;
 GLUI_Panel* checkboxes;
 GLUI_Panel* radiobutton;
-GLUI_Panel* panel_colormap;
 GLUI_RadioGroup* radiogroup;
 GLUI_Translation* dots[4];
 
-GLUI_Rollout* rollout_canny;
+GLUI_Rollout* rollout_canny, * panel_colormap,* rollout_draw;
 GLUI_Checkbox* houghlines, *houghcircles, * clahehisteq;
+GLUI_StaticText* static_playtext;
 int framebar;
 float trans_dot_pos[4][3] = { 0.0 };
 float now_dot_pos[4][3] = { 0.0 };
@@ -58,9 +58,12 @@ int ishisteq = false;
 int isclahe = false;
 
 int isdrawing = false;
+
 float set_dots[4][2] = { 0 };
 int selected_point;
 int colormap_type = COLORMAP_RAINBOW;
+
+const char* playtext[5] = { "Play Back Fast <<" , "Play Back <" , "Pause ||" , "Play Forward >" , "Play Forward Fast >>" };
 
 //void idle_pause();
 void pause_handler(int id = -1);
@@ -85,7 +88,6 @@ void checkbox(int id);
 
 void Canny_ui();
 void Threshold_ui();
-int mode = 0;
 
 //canny
 int lowTh = 40, ratioo = 3, kernel_size = 3, max_lowTh = 100;
@@ -95,16 +97,16 @@ void just_sync(int id) {
 	GLUI_Master.sync_live_all();
 }
 
-#define CANNY 3
-#define WRAP 4
-#define DRAWING 5
-#define HISTOGRAM 6
-#define RMBACKGROUND 7
-#define HOUGHLINES 8
-#define HOUGHCIRCLES 9
-#define COLORMAP 10
-#define HISTEQ 11
-#define CLAHEHISTEQ 12
+#define CANNY			1
+#define WRAP			2
+#define DRAWING			3
+#define HISTOGRAM		4
+#define RMBACKGROUND	5
+#define HOUGHLINES		6
+#define HOUGHCIRCLES	7
+#define COLORMAP		8
+#define HISTEQ			9
+#define CLAHEHISTEQ		10
 
 void effectpack(Mat& frame_e) {
 	showHist(frame_e, 0);
@@ -119,6 +121,7 @@ void effectpack(Mat& frame_e) {
 	wrap(frame_e);
 	showHist(frame_e, 1);
 }
+
 void checkbox_handler(int id) {
 	switch (id) {
 	case CANNY:
@@ -148,21 +151,24 @@ void checkbox_handler(int id) {
 			radiobutton->disable();
 			dots[selected_point]->disable();
 		} break;
-	case DRAWING:		if (isdrawing) {}
-				else {} break;
+	case DRAWING:
+		if (isdrawing) { rollout_draw->enable(); }
+		else { rollout_draw->disable(); } break;
 	case HISTOGRAM:
 		if (ishist) {}
 		else {
 			destroyWindow("Before Histogram"); destroyWindow("After Histogram");
 		} break;
-	case RMBACKGROUND:	if (isrmbg) {}
-					 else { destroyWindow("Background"); } break;
-	case HISTEQ:	if (ishisteq) { clahehisteq->enable(); }
-			   else { clahehisteq->disable(); } break;
+	case RMBACKGROUND:
+		if (isrmbg) {}
+		else { destroyWindow("Background"); } break;
+	case HISTEQ:
+		if (ishisteq) { clahehisteq->enable(); }
+		else { clahehisteq->disable(); } break;
 	default: break;
 	}
 	GLUI_Master.sync_live_all();
-}
+};
 
 Mat src_ycrcb, ycrcb_planes[3];
 void Histeqalize(Mat& frame_h) {
@@ -196,7 +202,7 @@ Ptr<BackgroundSubtractor> pMOG2 = createBackgroundSubtractorMOG2();
 void remove_background(Mat& frame_b) {
 	if (isrmbg) {
 		Mat out;
-		pMOG2->apply(frame_b, result, -1);  // -1 : 자동갱신비율, 0 : 갱신안함, 1 : 이전영상
+		pMOG2->apply(frame_b, result, -1);// -1 : 자동갱신비율, 0 : 갱신안함, 1 : 이전영상
 		pMOG2->getBackgroundImage(BGImg);
 		frame_b.copyTo(out, result);
 		out.copyTo(frame_b);
@@ -214,8 +220,8 @@ void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
 		colorG = Scalar(0, 255, 0);  // 초록색
 		colorR = Scalar(0, 0, 255); // 빨간색
 	// 히스토그램에서 최대값을 찾는다. 
-	int max = histB[0];
-	for (int i = 0; i < 256; i++) {
+	int max = histB[1];
+	for (int i = 1; i < 256; i++) {
 		if (max < histB[i])
 			max = histB[i];
 		if (max < histG[i])
@@ -230,10 +236,10 @@ void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
 		histR[i] = floor(((double)histR[i] / max) * hist_h);
 	}
 	// 히스토그램을 막대그래프로 그린다. 
-	for (int i = 0; i <= 255*3; i++) {
-			line(histImg, Point(3 * i,   hist_h), Point(3 * i,   hist_h - histB[i]), colorB);
-			line(histImg, Point(3 * i+1, hist_h), Point(3*i+1, hist_h - histG[i]), colorG);
-			line(histImg, Point(3 * i+2, hist_h), Point(3 * i+2, hist_h - histR[i]), colorR);
+	for (int i = 1; i <= 255*3; i++) {
+		line(histImg, Point(3 * i-2, hist_h), Point(3 * i-2, hist_h - histB[i]), colorB);
+		line(histImg, Point(3 * i -1, hist_h), Point(3 * i - 1, hist_h - histG[i]), colorG);
+		line(histImg, Point(3 * i , hist_h), Point(3 * i , hist_h - histR[i]), colorR);
 	}
 
 	//Mat C(out, Rect(0, 0, histImg.cols, histImg.rows));
@@ -426,8 +432,8 @@ int Save() {//all record 추가하기
 	SaveFileDialog* openFileDialog = new SaveFileDialog();
 	if (openFileDialog->ShowDialog()) {
 		SaveFilename = openFileDialog->FileName;
-		vid.set(CAP_PROP_POS_AVI_RATIO, 0);
-		VideoWriter output(SaveFilename, VideoWriter::fourcc('M', 'J', 'P', 'G'), vid_fps, Size(vid_width, vid_height));//, iscolor
+		//vid.set(CAP_PROP_POS_AVI_RATIO, 0);
+		VideoWriter output(SaveFilename, VideoWriter::fourcc('m', 'p', '4', 'v'), vid_fps, Size(vid_width, vid_height));//, iscolor
 		if (!output.isOpened())
 		{
 			std::cout << "Can't write video." << std::endl;
@@ -533,6 +539,9 @@ void idle() {
 				vid.set(CAP_PROP_POS_FRAMES, 1);
 				nowframe = vid.get(CAP_PROP_POS_FRAMES);
 				cout << "처음" << nowframe << endl;
+
+				static_playtext->set_text(playtext[2]);
+
 				pause_handler(1);
 				break;
 			}
@@ -542,6 +551,9 @@ void idle() {
 				vid.set(CAP_PROP_POS_FRAMES, vid_framecount);
 				nowframe = vid.get(CAP_PROP_POS_FRAMES);
 				cout << "마지막(1) " << nowframe << endl;
+
+				static_playtext->set_text(playtext[2]);
+
 				pause_handler(1);
 				break;
 			}
@@ -550,6 +562,9 @@ void idle() {
 				vid.set(CAP_PROP_POS_FRAMES, vid_framecount);
 				nowframe = vid.get(CAP_PROP_POS_FRAMES);
 				cout << "마지막(2) " << nowframe << endl;
+
+				static_playtext->set_text(playtext[2]);
+
 				pause_handler(1);
 				break;
 			}
@@ -566,6 +581,9 @@ void idle() {
 					vid.set(CAP_PROP_POS_FRAMES, vid_framecount);
 					nowframe = vid.get(CAP_PROP_POS_FRAMES);
 					cout << "마지막(3) " << nowframe << endl;
+
+					static_playtext->set_text(playtext[2]);
+
 					pause_handler(1);
 					break;
 				}
@@ -608,6 +626,8 @@ void wrap(Mat& frame_w) {
 }
 
 void Changemod(int id) {
+	static_playtext->set_text(playtext[id + 2]);
+	GLUI_Master.sync_live_all();
 	switch (id) {
 	case PLAY_BACK_FAST:
 		playmod = PLAY_BACK_FAST;
@@ -635,6 +655,8 @@ void pause_handler(int id) {
 	if (ispause == true) {//ispause = true 였다면 toggle
 		ispause = false;
 		GLUI_Master.set_glutIdleFunc(idle);
+		static_playtext->set_text(playtext[playmod + 2]);
+		GLUI_Master.sync_live_all();
 	}
 	else {//ispause = false 였다면 toggle
 		ispause = true;
@@ -650,6 +672,7 @@ void pause_handler(int id) {
 		frame.copyTo(frame_pause);
 		GLUI_Master.set_glutIdleFunc(NULL);
 	}
+	GLUI_Master.sync_live_all();
 }
 
 void frame_handler(int id) {
@@ -699,6 +722,41 @@ void drawCircle(int event, int x, int y, int, void* param) {
 	}
 }
 
+void draw_ui() {
+		rollout_draw = glui->add_rollout("Draw Color", false);
+		GLUI_Panel* panel_drawr = glui->add_panel_to_panel(rollout_draw, "Draw Color", GLUI_PANEL_NONE);
+		GLUI_Panel* panel_drawg = glui->add_panel_to_panel(rollout_draw, "Draw Color", GLUI_PANEL_NONE);
+		GLUI_Panel* panel_drawb = glui->add_panel_to_panel(rollout_draw, "Draw Color", GLUI_PANEL_NONE);
+
+		GLUI_Spinner* spinner_r = glui->add_spinner_to_panel(panel_drawr, "R : ", GLUI_SPINNER_INT, &red, 0, just_sync);
+		spinner_r->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+		spinner_r->set_speed(0.001);
+		glui->add_column_to_panel(panel_drawr, false);
+		GLUI_Scrollbar* scrollbar_r = new GLUI_Scrollbar(panel_drawr, "R", GLUI_SCROLL_HORIZONTAL, &red, 0, just_sync);
+		scrollbar_r->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+		scrollbar_r->set_speed(0.001);
+
+
+		GLUI_Spinner* spinner_g = glui->add_spinner_to_panel(panel_drawg, "G : ", GLUI_SPINNER_INT, &green, 0, just_sync);
+		spinner_g->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+		spinner_g->set_speed(0.001);
+		glui->add_column_to_panel(panel_drawg, false);
+		GLUI_Scrollbar* scrollbar_g = new GLUI_Scrollbar(panel_drawg, "G", GLUI_SCROLL_HORIZONTAL, &green, 0, just_sync);
+		scrollbar_g->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+		scrollbar_g->set_speed(0.001);
+
+		GLUI_Spinner* spinner_b = glui->add_spinner_to_panel(panel_drawb, "B : ", GLUI_SPINNER_INT, &blue, 0, just_sync);
+		spinner_b->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+		spinner_b->set_speed(0.001);
+		glui->add_column_to_panel(panel_drawb, false);
+		GLUI_Scrollbar* scrollbar_b = new GLUI_Scrollbar(panel_drawb, "B", GLUI_SCROLL_HORIZONTAL, &blue, 0, just_sync);
+		scrollbar_b->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+		scrollbar_b->set_speed(0.001);
+
+		rollout_draw->disable();
+}
+
+
 void radioButtonCallback(int id) {
 	switch (selected_point) {
 	case 0:
@@ -714,7 +772,6 @@ void radioButtonCallback(int id) {
 	dots[selected_point]->enable();
 	GLUI_Master.sync_live_all();
 }
-
 
 
 int main(int argc, char* argv[])
@@ -748,6 +805,9 @@ int main(int argc, char* argv[])
 	btn[4]->set_w(30);
 	playbutton->disable();
 
+	GLUI_Panel*panel_playtext=glui->add_panel("Text", GLUI_PANEL_NONE);
+	static_playtext = glui->add_statictext_to_panel(panel_playtext, playtext[playmod + 2]);
+
 	GLUI_Panel*move = glui->add_panel("Move", GLUI_PANEL_NONE);
 	movedots = glui->add_panel_to_panel(move, "Move", GLUI_PANEL_EMBOSSED);
 	dots[0] = glui->add_translation_to_panel(movedots, "Left Top",		GLUI_TRANSLATION_XY, trans_dot_pos[0], 0, translation);
@@ -776,21 +836,21 @@ int main(int argc, char* argv[])
 	glui->add_checkbox_to_panel(checkboxes, "Colormap", &iscolormap, COLORMAP, checkbox_handler);
 	glui->add_checkbox_to_panel(checkboxes, "Histogram Equalize", &ishisteq, HISTEQ, checkbox_handler);
 	clahehisteq = glui->add_checkbox_to_panel(checkboxes, "Clahe Histogram Equalize", &isclahe, CLAHEHISTEQ, checkbox_handler);
-	glui->add_checkbox_to_panel(checkboxes, "Canny", &iscanny, CANNY, checkbox_handler);
+	glui->add_checkbox_to_panel(checkboxes, "Canny Edge Detection", &iscanny, CANNY, checkbox_handler);
 	houghlines = glui->add_checkbox_to_panel(checkboxes, "Hough Lines", &isline, HOUGHLINES, checkbox_handler);
 	houghcircles = glui->add_checkbox_to_panel(checkboxes, "Hough Circles", &iscircle, HOUGHCIRCLES, checkbox_handler);
 	glui->add_checkbox_to_panel(checkboxes, "Histogram", &ishist, HISTOGRAM, checkbox_handler);
 	glui->add_checkbox_to_panel(checkboxes, "Remove Background", &isrmbg, RMBACKGROUND, checkbox_handler);
 	checkboxes->disable();
 
-	Canny_ui();
+	draw_ui();
 	colormap_ui();
+	Canny_ui();
 
 	glui->add_button("Open", 0, OpenVideo);
 	btn_save = glui->add_button("Save", 0, SaveVideo);
 	btn_save->disable();
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
-
 
 	glui->set_main_gfx_window(main_window);
 	glutMainLoop();
