@@ -251,7 +251,7 @@ void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
 	//case 'R': imshow("Histogram Red", histImg); break;
 	//case 'K': imshow("Histogram", histImg); break;
 	//}
-};
+}
 
 void showHist(Mat& in, int index) {
 	if (ishist) {

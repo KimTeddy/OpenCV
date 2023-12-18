@@ -1,4 +1,4 @@
-ï»¿#include <iostream>
+#include <iostream>
 #include <opencv2/opencv.hpp>
 #include <GL/glui.h>
 #include "OpenFileDialog.h"
@@ -122,7 +122,7 @@ void OpenImage(int id) {
 		input_height = src.size().height;
 		cout << "input_width: " << input_width << "input_height: " << input_height << endl;
 
-		//ëª¨ë“  ê¸°ëŠ¥ í™œì„±í™”
+		//¸ğµç ±â´É È°¼ºÈ­
 		//check[NONE]->enable();
 		check[CANNY]->enable();
 		check[THRESHOLD]->enable();
@@ -161,7 +161,7 @@ void OpenImage(int id) {
 }
 
 String SaveFilename;
-int Save() {//all record ì¶”ê°€í•˜ê¸°
+int Save() {//all record Ãß°¡ÇÏ±â
 	SaveFileDialog* openFileDialog = new SaveFileDialog();
 	if (openFileDialog->ShowDialog()) {
 		SaveFilename = openFileDialog->FileName;
@@ -179,14 +179,14 @@ void SaveImage(int id) {
 //---------------------------------------------------------------------------------------------------------------
 void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
 {
-	int hist_h = input_height / 4;  // íˆìŠ¤í† ê·¸ë¨ ì˜ìƒì˜ ë†’ì´
-	Mat histImg(hist_h, 512, CV_8UC3, Scalar(0, 0, 0)); // ì˜ìƒë²„í¼
+	int hist_h = input_height / 4;  // È÷½ºÅä±×·¥ ¿µ»óÀÇ ³ôÀÌ
+	Mat histImg(hist_h, 512, CV_8UC3, Scalar(0, 0, 0)); // ¿µ»ó¹öÆÛ
 
-	Scalar colorB, colorG, colorR; // íˆìŠ¤í† ê·¸ë¨ ìƒ‰ìƒ
-	colorB = Scalar(255, 0, 0);  // íŒŒë€ìƒ‰
-	colorG = Scalar(0, 255, 0);  // ì´ˆë¡ìƒ‰
-	colorR = Scalar(0, 0, 255); // ë¹¨ê°„ìƒ‰
-	// íˆìŠ¤í† ê·¸ë¨ì—ì„œ ìµœëŒ€ê°’ì„ ì°¾ëŠ”ë‹¤. 
+	Scalar colorB, colorG, colorR; // È÷½ºÅä±×·¥ »ö»ó
+	colorB = Scalar(255, 0, 0);  // ÆÄ¶õ»ö
+	colorG = Scalar(0, 255, 0);  // ÃÊ·Ï»ö
+	colorR = Scalar(0, 0, 255); // »¡°£»ö
+	// È÷½ºÅä±×·¥¿¡¼­ ÃÖ´ë°ªÀ» Ã£´Â´Ù. 
 	int max = histB[1];
 	for (int i = 1; i < 256; i++) {
 		if (max < histB[i])
@@ -196,13 +196,13 @@ void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
 		if (max < histR[i])
 			max = histR[i];
 	}
-	// íˆìŠ¤í† ê·¸ë¨ ë°°ì—´ì„ ìµœëŒ€ê°’(ìµœëŒ€ ë†’ì´)ìœ¼ë¡œ ì •ê·œí™”. 
+	// È÷½ºÅä±×·¥ ¹è¿­À» ÃÖ´ë°ª(ÃÖ´ë ³ôÀÌ)À¸·Î Á¤±ÔÈ­. 
 	for (int i = 0; i <= 255; i++) {
 		histB[i] = floor(((double)histB[i] / max) * hist_h);
 		histG[i] = floor(((double)histG[i] / max) * hist_h);
 		histR[i] = floor(((double)histR[i] / max) * hist_h);
 	}
-	// íˆìŠ¤í† ê·¸ë¨ì„ ë§‰ëŒ€ê·¸ë˜í”„ë¡œ ê·¸ë¦°ë‹¤. 
+	// È÷½ºÅä±×·¥À» ¸·´ë±×·¡ÇÁ·Î ±×¸°´Ù. 
 	for (int i = 1; i <= 255 * 3; i++) {
 		line(histImg, Point(3 * i - 2, hist_h), Point(3 * i - 2, hist_h - histB[i]), colorB);
 		line(histImg, Point(3 * i - 1, hist_h), Point(3 * i - 1, hist_h - histG[i]), colorG);
@@ -223,14 +223,14 @@ int ishist = false;
 void showHist(Mat& in, int index) {
 	if (ishist) {
 		Mat histogram, hist_after;
-		if (in.channels() == 1) { // GrayScale ì˜ìƒ ê²½ìš°
+		if (in.channels() == 1) { // GrayScale ¿µ»ó °æ¿ì
 			int hist[3][256] = { 0 };
 			for (int y = 0; y < in.rows; y++)
 				for (int x = 0; x < in.cols; x++)
 					hist[0][(int)in.at<uchar>(y, x)]++;
 			drawHist(histogram, 'K', hist[0], hist[0], hist[0]);
 		}
-		else {  // Color ì˜ìƒ ê²½ìš°
+		else {  // Color ¿µ»ó °æ¿ì
 			int hist[3][256] = { 0 };
 			for (int y = 0; y < in.rows; y++)
 				for (int x = 0; x < in.cols; x++)
@@ -250,7 +250,7 @@ void showHist(Mat& in, int index) {
 }
 
 //---------------------------------------------------------------------------------------------------------------
-void CannyThreshold(int id) {//6ì¥
+void CannyThreshold(int id) {//6Àå
 	if (mode == CANNY) {
 		dst.create(src.size(), src.type());
 		//edittext_lowTh->set_int_val(lowTh);
@@ -267,7 +267,7 @@ void CannyThreshold(int id) {//6ì¥
 //---------------------------------------------------------------------------------------------------------------
 int threshold_val = 100;
 int threshold_type = 0;
-void Threshold(int id) {//4ì¥
+void Threshold(int id) {//4Àå
 	if (mode == THRESHOLD) {
 		threshold(gray, dst, threshold_val, 255, threshold_type);
 		imshow("Output", dst);
@@ -277,7 +277,7 @@ void Threshold(int id) {//4ì¥
 
 //---------------------------------------------------------------------------------------------------------------
 Mat src_ycrcb, ycrcb_planes[3];
-void HistogramEqualize(int id) {//5ì¥
+void HistogramEqualize(int id) {//5Àå
 	if (mode == HISTEQ) {
 		cvtColor(src, src_ycrcb, COLOR_BGR2YCrCb);
 		split(src_ycrcb, ycrcb_planes);
@@ -290,7 +290,7 @@ void HistogramEqualize(int id) {//5ì¥
 
 //---------------------------------------------------------------------------------------------------------------
 
-void Wrap(int id) {//7ì¥
+void Wrap(int id) {//7Àå
 	if (mode == WRAP) {
 		Point2f inputp[4], outputp[4];
 		inputp[0] = Point2f(0, 0);			inputp[2] = Point2f(dst.cols, 0);
@@ -348,7 +348,7 @@ void radioButtonCallback(int id) {
 
 //---------------------------------------------------------------------------------------------------------------
 int H = 90, S = 100, V = 100, range = 10;
-void Findcolor(int id) {//9ì¥
+void Findcolor(int id) {//9Àå
 	if (mode == FINDCOLOR) {
 		Mat imgHSV, imgThresholded;
 		cvtColor(src, imgHSV, COLOR_BGR2HSV);
@@ -364,7 +364,7 @@ void Findcolor(int id) {//9ì¥
 //---------------------------------------------------------------------------------------------------------------
 
 Mat opening, close;
-void OpenClose(int id) {//8ì¥
+void OpenClose(int id) {//8Àå
 	if (mode == OPENCLOSE) {
 		Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
 
@@ -383,7 +383,7 @@ void OpenClose(int id) {//8ì¥
 	GLUI_Master.sync_live_all();
 }
 //---------------------------------------------------------------------------------------------------------------
-//10ì¥
+//10Àå
 void shuffleDFT(Mat& src)
 {
 	int cX = src.cols / 2;
@@ -392,11 +392,11 @@ void shuffleDFT(Mat& src)
 	Mat q1(src, Rect(0, 0, cX, cY));      Mat q2(src, Rect(cX, 0, cX, cY));
 	Mat q3(src, Rect(0, cY, cX, cY));    Mat q4(src, Rect(cX, cY, cX, cY));
 	Mat tmp;
-	// q1ê³¼ q4ë¥¼ êµí™˜
+	// q1°ú q4¸¦ ±³È¯
 	q1.copyTo(tmp);
 	q4.copyTo(q1);
 	tmp.copyTo(q4);
-	// q2ì™€ q3ì„ êµí™˜
+	// q2¿Í q3À» ±³È¯
 	q2.copyTo(tmp);
 	q3.copyTo(q2);
 	tmp.copyTo(q3);
@@ -427,7 +427,7 @@ void hpf(int id) {
 	}
 }
 //---------------------------------------------------------------------------------------------------------------
-void labeling(int id) {//11ì¥
+void labeling(int id) {//11Àå
 	if (mode == LABELING) {
 		Mat img, thimg, labels, centroids, img_color, stats;
 
@@ -437,12 +437,12 @@ void labeling(int id) {//11ì¥
 
 		int n = connectedComponentsWithStats(thimg, labels, stats, centroids);
 
-		vector<Vec3b> colors(n + 1);  // ì»¬ëŸ¬ ë²„í¼
-		colors[0] = Vec3b(0, 0, 0);  // ë°°ê²½ì€ ê²€ì€ìƒ‰
-		for (int i = 1; i <= n; i++)  // ê° labelì— ëœë¤ì»¬ëŸ¬ ìƒì„±
+		vector<Vec3b> colors(n + 1);  // ÄÃ·¯ ¹öÆÛ
+		colors[0] = Vec3b(0, 0, 0);  // ¹è°æÀº °ËÀº»ö
+		for (int i = 1; i <= n; i++)  // °¢ label¿¡ ·£´ıÄÃ·¯ »ı¼º
 			colors[i] = Vec3b(rand() % 256, rand() % 256, rand() % 256);
 		img_color = Mat::zeros(gray.size(), CV_8UC3);
-		// labelëœ ê° í™”ì†Œì— ì»¬ëŸ¬ê°’ ì„¤ì •
+		// labelµÈ °¢ È­¼Ò¿¡ ÄÃ·¯°ª ¼³Á¤
 		for (int y = 0; y < img_color.rows; y++)
 			for (int x = 0; x < img_color.cols; x++) {
 				int label = labels.at<int>(y, x);
@@ -455,7 +455,7 @@ void labeling(int id) {//11ì¥
 	GLUI_Master.sync_live_all();
 }
 //---------------------------------------------------------------------------------------------------------------
-void gaussian(int id) {//11ì¥
+void gaussian(int id) {//11Àå
 	if (mode == GAUSSIAN) {
 		Mat img, th;
 		medianBlur(gray, img, 5);
@@ -465,7 +465,7 @@ void gaussian(int id) {//11ì¥
 	}
 }
 //---------------------------------------------------------------------------------------------------------------
-void corner(int id) {//12ì¥
+void corner(int id) {//12Àå
 	if (mode == CORNER) {
 		if (id == 0) src.copyTo(dst);
 		Mat dst2, dst_norm, dst_norm_scaled;
