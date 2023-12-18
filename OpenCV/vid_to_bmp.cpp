@@ -433,18 +433,23 @@ int Save() {//all record 추가하기
 	if (openFileDialog->ShowDialog()) {
 		SaveFilename = openFileDialog->FileName;
 		//vid.set(CAP_PROP_POS_AVI_RATIO, 0);
-		VideoWriter output(SaveFilename, VideoWriter::fourcc('m', 'p', '4', 'v'), vid_fps, Size(vid_width, vid_height));//, iscolor
-		if (!output.isOpened())
+		//VideoWriter output(SaveFilename, VideoWriter::fourcc('m', 'p', '4', 'v'), vid_fps, Size(vid_width, vid_height));//, iscolor
+		/*if (!output.isOpened())
 		{
 			std::cout << "Can't write video." << std::endl;
 			return -1;
-		}
+		}*/
 		namedWindow(SaveFilename);
+		int num = 0;
+		char text[50] = {0};
 		while (1) {
 			vid >> output_frame;
 			//remove_background(output_frame);
 			framebar = nowframe = vid.get(CAP_PROP_POS_FRAMES);
+			vid.set(CAP_PROP_POS_FRAMES, nowframe + 19);
 			GLUI_Master.sync_live_all();
+
+
 
 			if (output_frame.empty()) {
 				cout << "Video END" << std::endl;
@@ -453,8 +458,11 @@ int Save() {//all record 추가하기
 
 			//영상처리
 			effectpack(output_frame);
-
-			output << output_frame;
+			char* c = &*SaveFilename.begin();
+			sprintf_s(text,"%s_%04d.bmp", c, num);
+			num++;
+			imwrite(text, output_frame);
+			//output << output_frame;
 			imshow(SaveFilename, output_frame);
 			if (waitKey(1) == 27) {//1000 / vid_fps
 				cout << "Stop video record" << endl;
