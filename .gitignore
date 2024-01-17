@@ -1,0 +1,16 @@
+
+*.db
+*.vsidx
+*.lock
+*.db-shm
+*.db-wal
+*.opendb
+.vs/OpenCV/v17/.suo
+.vs/OpenCV/v17/ipch/AutoPCH/1eadabb6d9ae3c10/HW1.ipch
+.vs/OpenCV/v17/ipch/AutoPCH/436ea7c5c867c4bd/2장.ipch
+.vs/OpenCV/v17/ipch/AutoPCH/64abb80e9bcbbad6/6-6_캐니 에지 연산자.ipch
+.vs/OpenCV/v17/ipch/AutoPCH/77ce69280ca88768/OPENFILEDIALOG.ipch
+.vs/OpenCV/v17/ipch/AutoPCH/7bf0d477f1cc1ef6/2장.ipch
+.vs/OpenCV/v17/ipch/AutoPCH/a7b6d528db4b6c93/6-6_캐니 에지 연산자.ipch
+.vs/OpenCV/v17/ipch/AutoPCH/b100230191b1ccfb/TEST1.ipch
+.vs/OpenCV/v17/ipch/AutoPCH/b317fc7c6ede1b6b/OPENFILEDIALOG.ipch
