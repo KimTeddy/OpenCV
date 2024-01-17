@@ -1,4 +1,6 @@
-# 결과이미지
+# <동영상 영상처리 프로그램>
+
+## 결과이미지
 ### 전체 실행 모습
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/0ede77dc-7a44-46c5-95c6-b2f0658b0c52)
 ### GLUI
