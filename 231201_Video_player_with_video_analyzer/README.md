@@ -1,22 +1,21 @@
 # 결과이미지
-### GLUI
-![image](https://github.com/KimTeddy/OpenCV/assets/68770209/f9c125af-d51b-4363-873c-6205eef6387a)
-
 ### 전체 실행 모습
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/0ede77dc-7a44-46c5-95c6-b2f0658b0c52)
+### GLUI
+![image](https://github.com/KimTeddy/OpenCV/assets/68770209/f9c125af-d51b-4363-873c-6205eef6387a)
 
 
 # 가능한 기능 목록
 - [영상 열기/저장](#b-video-opensave)
-- [영상 빨리 되감기/되감기/일시정지/재생/빨리 재생](#c-영상-재생일시정지)
-- [영상 진행 바 -> 현재 영상 진행도 확인](#c-영상-재생일시정지)
-
+	- [Video Open](#b1-video-open)
+	- [Video Save](#b2-video-save)
+- 영상 재생/이동
+	- [영상 빨리 되감기/되감기/일시정지/재생/빨리 재생](#c-영상-재생일시정지)
+	- [영상 진행 바 -> 현재 영상 진행도 확인](#c-영상-재생일시정지)
 - 마우스 클릭&드래그 -> 그림그리기
 	- [Draw](#d2-draw)
-  
 - 이전, 이후 히스토그램 창 띄우기
 	- [Histogram](#d5-color-histogram-창)
-
 - 영상 처리
 	- [Wrap](#d1-wrap)
 	- [Colormap](#d3-colormap)
@@ -26,7 +25,6 @@
 	- [Canny Edge Detection](#d6-canny-edge-detection)
 		-LowTh 조절
 		-BlurSize 조절
-
 - 영상 분석
 	- [Hough Lines](#d7-hough-lines)
 	- [Hough Circles](#d8-hough-circles)
