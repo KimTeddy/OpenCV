@@ -83,7 +83,8 @@
 
 
 ### D.2. Draw
-- Draw 기능을 활성화하면 마우스 드래그를 통해 그림을 그릴 수 있다. Save에는 적용되지 않는다.<br>
+- Draw 기능을 활성화하면 마우스 드래그를 통해 그림을 그릴 수 있다.<br>
+- Save에는 적용되지 않는다.<br>
 - Draw Color rollout도 같이 활성화되며, open해보면 그림 색깔을 바꿀 수 있다.<br>
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/08fcdba4-4812-4603-95cd-456197463ebd)
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/08171486-9b80-4402-87ea-cfa740246a52)
@@ -140,6 +141,7 @@
 
 - Hough Lines를 끄면 다음과 같이 Canny Edge detection이 잘 적용된 모습을 볼 수 있다.<br>
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/ce40fec7-8698-45c3-a350-1f7436cc41d6)
+
 
 ### D.7. Hough Lines
 - Canny Edge detection을 켠 상태에서 Hough Lines를 활성화하면 Hough Lines 알고리즘이 실행된다.
