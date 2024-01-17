@@ -2,23 +2,23 @@
 
 # 프로그램 설명서(사용법)
 ## 1) 가능한 기능 목록
-- Image Open/Save
-  - Image Open
-  - Image re-Open
-  - Image Save
+- [Image Open/Save](#b-image-opensave)
+  - [Image Open](#b11-image-open)
+  - [Image re-Open](#b12-image-re-open)
+  - [Image Save](#b2-image-save)
 - 프로그램 종료 버튼 Quit
 
-- 영상 처리
-  - Canny Edge Detection
-  - Threshold
-  - Histogram Equalize
-  - Wrap
-  - Find Color
-  - Open/Close
-  - HPF
-  - Labeling
-  - Gaussian
-  - Corner Detection
+- [영상 처리](#c-각종-이미지-처리-기능)
+  - [Canny Edge Detection](#c1-canny-edge-detection)
+  - [Threshold](#c2-threshold)
+  - [Histogram Equalize](#c3-histogram-equalize)
+  - [Wrap](#c4-wrap)
+  - [Find Color](#c5-find-color)
+  - [Open/Close](#c6-openclose)
+  - [HPF](#c7-hpf)
+  - [Labeling](#c8-labeling)
+  - [Gaussian](#c9-gaussian)
+  - [Corner Detection](#c10-find-corner)
 
 ## 2) 결과이미지
 - 전체 실행 모습<br>
