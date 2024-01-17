@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 	scrollbar->set_speed(0.001);
 	new GLUI_Button(glui, "Quit", 0, (GLUI_Update_CB)exit);
 
-	src = imread("pl0.jpg", IMREAD_GRAYSCALE);
+	src = imread("lenna.jpg", IMREAD_GRAYSCALE);
 	dst.create(src.size(), src.type());
 	CannyThreshold(0);
 
