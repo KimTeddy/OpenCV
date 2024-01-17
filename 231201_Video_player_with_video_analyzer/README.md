@@ -7,22 +7,23 @@
 
 
 # 가능한 기능 목록
-- [영상 빨리 되감기/되감기/일시정지/재생/빨리 재생](#C.영상재생/일시정지)
-- [영상 진행 바 -> 현재 영상 진행도 확인](#D.2.Draw)
+- [영상 열기/저장](#b-video-opensave)
+- [영상 빨리 되감기/되감기/일시정지/재생/빨리 재생](#c-영상-재생일시정지)
+- [영상 진행 바 -> 현재 영상 진행도 확인](#c-영상-재생일시정지)
 
-- [마우스 클릭&드래그 -> 그림그리기](#D.2.Draw)
-	- Draw
-
+- 마우스 클릭&드래그 -> 그림그리기
+	- [Draw](#d2-draw)
+  
 - 이전, 이후 히스토그램 창 띄우기
-	- Histogram
+	- [Histogram](#d5-color-histogram-창)
 
 - 영상 처리
-	- Wrap
-	- Colormap
+	- [Wrap](#d1-wrap)
+	- [Colormap](#d3-colormap)
 		- Choose ColormapType
-	- Histogram Equalize
+	- [Histogram Equalize](#d4-histogram-equalize)
 		- Clahe Histogram Equalize ON/OFF
-	- Canny Edge Detection
+	- [Canny Edge Detection](#d6-canny-edge-detection)
 		-LowTh 조절
 		-BlurSize 조절
 
@@ -142,16 +143,15 @@
 - Hough Lines를 끄면 다음과 같이 Canny Edge detection이 잘 적용된 모습을 볼 수 있다.<br>
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/ce40fec7-8698-45c3-a350-1f7436cc41d6)
 
-D.7. Hough Lines
+### D.7. Hough Lines
 - Canny Edge detection을 켠 상태에서 Hough Lines를 활성화하면 Hough Lines 알고리즘이 실행된다.
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/41f11cd6-8698-48e8-a9f7-b7d46a98b423)
 
-
-D.8. Hough Circles
+### D.8. Hough Circles
 - Hough Circles를 활성화하면 Hough Circles 알고리즘이 실행된다.<br>
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/cfd891da-6a12-4a8d-b1b2-5da9a5099bab)
 
-D.9. Remove Background
+### D.9. Remove Background
 - 예제를 변형하여 배경제거 결과를 마스크로 사용하여 영상이 컬러로 나온다.<br>
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/d966a891-8f63-4be3-b06a-ee408b81c2b5)
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/69b961f3-fc3c-4169-8e07-18705dcaf6cd)
