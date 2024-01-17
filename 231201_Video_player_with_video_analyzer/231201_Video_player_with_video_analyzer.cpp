@@ -28,7 +28,7 @@ bool ispause = true;
 double settest = 0;
 int nowframe = 0;
 
-GLUI* glui; 
+GLUI* glui;
 GLUI_Panel* playbutton;
 GLUI_Panel* playbar;
 GLUI_Scrollbar* scrollbar_play;
@@ -39,8 +39,8 @@ GLUI_Panel* radiobutton;
 GLUI_RadioGroup* radiogroup;
 GLUI_Translation* dots[4];
 
-GLUI_Rollout* rollout_canny, * panel_colormap,* rollout_draw;
-GLUI_Checkbox* houghlines, *houghcircles, * clahehisteq;
+GLUI_Rollout* rollout_canny, * panel_colormap, * rollout_draw;
+GLUI_Checkbox* houghlines, * houghcircles, * clahehisteq;
 GLUI_StaticText* static_playtext;
 int framebar;
 float trans_dot_pos[4][3] = { 0.0 };
@@ -70,7 +70,7 @@ void pause_handler(int id = -1);
 void drawCircle(int event, int x, int y, int, void* param);
 void radioButtonCallback(int id);
 
-//±â´Éµé
+//ê¸°ëŠ¥ë“¤
 void CannyThreshold(Mat& frame_c);
 void wrap(Mat& frame_w);
 void showHist(Mat& in, int index);
@@ -113,7 +113,7 @@ void effectpack(Mat& frame_e) {
 
 	Histeqalize(frame_e);
 	Hough_circles(frame_e);
-	if(isgray) cvtColor(frame_e, frame_e, COLOR_BGR2GRAY);
+	if (isgray) cvtColor(frame_e, frame_e, COLOR_BGR2GRAY);
 	colormap(frame_e);
 	CannyThreshold(frame_e);
 	remove_background(frame_e);
@@ -176,7 +176,7 @@ void Histeqalize(Mat& frame_h) {
 		cvtColor(frame_h, src_ycrcb, COLOR_BGR2YCrCb);
 		split(src_ycrcb, ycrcb_planes);
 
-		//¹à±â ¼ººĞ¿¡ ´ëÇØ È÷½ºÅä±×·¥ ÆòÈ°È­ ¼öÇà
+		//ë°ê¸° ì„±ë¶„ì— ëŒ€í•´ íˆìŠ¤í† ê·¸ë¨ í‰í™œí™” ìˆ˜í–‰
 		if (isclahe) ClaheHistequlize(ycrcb_planes[0]);
 		else equalizeHist(ycrcb_planes[0], ycrcb_planes[0]);
 
@@ -196,13 +196,13 @@ void ClaheHistequlize(Mat& frame_ch) {
 }
 
 
-Mat result; // MOG2¿¡ ÀÇÇÑ forground mask ¿µ»ó
-Mat BGImg; // MOG2¿¡ ÀÇÇÑ background ¿µ»ó//MOG2 ¹è°æ »èÁ¦ °´Ã¼
+Mat result; // MOG2ì— ì˜í•œ forground mask ì˜ìƒ
+Mat BGImg; // MOG2ì— ì˜í•œ background ì˜ìƒ//MOG2 ë°°ê²½ ì‚­ì œ ê°ì²´
 Ptr<BackgroundSubtractor> pMOG2 = createBackgroundSubtractorMOG2();
 void remove_background(Mat& frame_b) {
 	if (isrmbg) {
 		Mat out;
-		pMOG2->apply(frame_b, result, -1);// -1 : ÀÚµ¿°»½ÅºñÀ², 0 : °»½Å¾ÈÇÔ, 1 : ÀÌÀü¿µ»ó
+		pMOG2->apply(frame_b, result, -1);// -1 : ìë™ê°±ì‹ ë¹„ìœ¨, 0 : ê°±ì‹ ì•ˆí•¨, 1 : ì´ì „ì˜ìƒ
 		pMOG2->getBackgroundImage(BGImg);
 		frame_b.copyTo(out, result);
 		out.copyTo(frame_b);
@@ -211,15 +211,15 @@ void remove_background(Mat& frame_b) {
 }
 
 void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
-{	
-	int hist_h = vid_height/4;  // È÷½ºÅä±×·¥ ¿µ»óÀÇ ³ôÀÌ
-	Mat histImg(hist_h, 512, CV_8UC3, Scalar(0, 0, 0)); // ¿µ»ó¹öÆÛ
+{
+	int hist_h = vid_height / 4;  // íˆìŠ¤í† ê·¸ë¨ ì˜ìƒì˜ ë†’ì´
+	Mat histImg(hist_h, 512, CV_8UC3, Scalar(0, 0, 0)); // ì˜ìƒë²„í¼
 
-	Scalar colorB, colorG, colorR; // È÷½ºÅä±×·¥ »ö»ó
-		colorB = Scalar(255, 0, 0);  // ÆÄ¶õ»ö
-		colorG = Scalar(0, 255, 0);  // ÃÊ·Ï»ö
-		colorR = Scalar(0, 0, 255); // »¡°£»ö
-	// È÷½ºÅä±×·¥¿¡¼­ ÃÖ´ë°ªÀ» Ã£´Â´Ù. 
+	Scalar colorB, colorG, colorR; // íˆìŠ¤í† ê·¸ë¨ ìƒ‰ìƒ
+	colorB = Scalar(255, 0, 0);  // íŒŒë€ìƒ‰
+	colorG = Scalar(0, 255, 0);  // ì´ˆë¡ìƒ‰
+	colorR = Scalar(0, 0, 255); // ë¹¨ê°„ìƒ‰
+	// íˆìŠ¤í† ê·¸ë¨ì—ì„œ ìµœëŒ€ê°’ì„ ì°¾ëŠ”ë‹¤. 
 	int max = histB[1];
 	for (int i = 1; i < 256; i++) {
 		if (max < histB[i])
@@ -229,17 +229,17 @@ void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
 		if (max < histR[i])
 			max = histR[i];
 	}
-	// È÷½ºÅä±×·¥ ¹è¿­À» ÃÖ´ë°ª(ÃÖ´ë ³ôÀÌ)À¸·Î Á¤±ÔÈ­. 
+	// íˆìŠ¤í† ê·¸ë¨ ë°°ì—´ì„ ìµœëŒ€ê°’(ìµœëŒ€ ë†’ì´)ìœ¼ë¡œ ì •ê·œí™”. 
 	for (int i = 0; i <= 255; i++) {
 		histB[i] = floor(((double)histB[i] / max) * hist_h);
 		histG[i] = floor(((double)histG[i] / max) * hist_h);
 		histR[i] = floor(((double)histR[i] / max) * hist_h);
 	}
-	// È÷½ºÅä±×·¥À» ¸·´ë±×·¡ÇÁ·Î ±×¸°´Ù. 
-	for (int i = 1; i <= 255*3; i++) {
-		line(histImg, Point(3 * i-2, hist_h), Point(3 * i-2, hist_h - histB[i]), colorB);
-		line(histImg, Point(3 * i -1, hist_h), Point(3 * i - 1, hist_h - histG[i]), colorG);
-		line(histImg, Point(3 * i , hist_h), Point(3 * i , hist_h - histR[i]), colorR);
+	// íˆìŠ¤í† ê·¸ë¨ì„ ë§‰ëŒ€ê·¸ë˜í”„ë¡œ ê·¸ë¦°ë‹¤. 
+	for (int i = 1; i <= 255 * 3; i++) {
+		line(histImg, Point(3 * i - 2, hist_h), Point(3 * i - 2, hist_h - histB[i]), colorB);
+		line(histImg, Point(3 * i - 1, hist_h), Point(3 * i - 1, hist_h - histG[i]), colorG);
+		line(histImg, Point(3 * i, hist_h), Point(3 * i, hist_h - histR[i]), colorR);
 	}
 
 	//Mat C(out, Rect(0, 0, histImg.cols, histImg.rows));
@@ -251,19 +251,19 @@ void drawHist(Mat& out, char mode, int histB[], int histG[], int histR[])
 	//case 'R': imshow("Histogram Red", histImg); break;
 	//case 'K': imshow("Histogram", histImg); break;
 	//}
-}
+};
 
 void showHist(Mat& in, int index) {
 	if (ishist) {
 		Mat histogram, hist_after;
-		if (in.channels() == 1) { // GrayScale ¿µ»ó °æ¿ì
+		if (in.channels() == 1) { // GrayScale ì˜ìƒ ê²½ìš°
 			int hist[256] = { 0 };
 			for (int y = 0; y < in.rows; y++)
 				for (int x = 0; x < in.cols; x++)
 					hist[(int)in.at<uchar>(y, x)]++;
 			drawHist(histogram, 'K', hist, hist, hist);
 		}
-		else {  // Color ¿µ»ó °æ¿ì
+		else {  // Color ì˜ìƒ ê²½ìš°
 			int hist[3][256] = { 0 };
 			for (int y = 0; y < in.rows; y++)
 				for (int x = 0; x < in.cols; x++)
@@ -292,9 +292,9 @@ void CannyThreshold(Mat& frame_c) {
 		frame_c.copyTo(dst, frame_c);
 
 		if (isline) {
-			cvtColor(frame_c, frame_cd, COLOR_GRAY2BGR); // ÇãÇÁº¯È¯¿¡ ÀÇÇØ °ËÃâµÈ ¼±À» ºÓÀº»ö
-			// À¸·Î Ç¥½ÃÇÏ±â À§ÇØ ÄÃ·¯·Î º¯È¯
-			vector<Vec4i> lines;  // °ËÃâµÈ Á÷¼±ÀÇ ¾ç³¡Á¡ ÁÂÇ¥¸¦ ÀúÀåÇÏ±â À§ÇÑ ¹öÆÛ
+			cvtColor(frame_c, frame_cd, COLOR_GRAY2BGR); // í—ˆí”„ë³€í™˜ì— ì˜í•´ ê²€ì¶œëœ ì„ ì„ ë¶‰ì€ìƒ‰
+			// ìœ¼ë¡œ í‘œì‹œí•˜ê¸° ìœ„í•´ ì»¬ëŸ¬ë¡œ ë³€í™˜
+			vector<Vec4i> lines;  // ê²€ì¶œëœ ì§ì„ ì˜ ì–‘ëì  ì¢Œí‘œë¥¼ ì €ì¥í•˜ê¸° ìœ„í•œ ë²„í¼
 			HoughLinesP(frame_c, lines, 1, CV_PI / 180, 50, 100, 20);
 			for (size_t i = 0; i < lines.size(); i++) {
 				Vec4i l = lines[i];
@@ -336,12 +336,12 @@ void Hough_circles(Mat& frame_cir) {
 		GaussianBlur(gray, gray, Size(9, 9), 2, 2);
 		vector<Vec3f> circles;
 		HoughCircles(gray, circles, HOUGH_GRADIENT, 1, gray.rows / 8, 200, 50);
-		// ¿øÀ» ¿µ»ó À§¿¡ ±×¸°´Ù. 
+		// ì›ì„ ì˜ìƒ ìœ„ì— ê·¸ë¦°ë‹¤. 
 		for (size_t i = 0; i < circles.size(); i++) {
 			Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
 			int radius = cvRound(circles[i][2]);
-			circle(frame_cir, center, 3, Scalar(0, 255, 0), -1, 8, 0); // ¿øÀÇ Áß½ÉÀ» ±×¸°´Ù. 
-			circle(frame_cir, center, radius, Scalar(0, 0, 255), 3, 8, 0); // ¿øÀ» ±×¸°´Ù.
+			circle(frame_cir, center, 3, Scalar(0, 255, 0), -1, 8, 0); // ì›ì˜ ì¤‘ì‹¬ì„ ê·¸ë¦°ë‹¤. 
+			circle(frame_cir, center, radius, Scalar(0, 0, 255), 3, 8, 0); // ì›ì„ ê·¸ë¦°ë‹¤.
 		}
 	}
 }
@@ -428,33 +428,42 @@ int open() {
 }
 
 String SaveFilename;
-int Save() {//all record Ãß°¡ÇÏ±â
+int Save() {//all record ì¶”ê°€í•˜ê¸°
 	SaveFileDialog* openFileDialog = new SaveFileDialog();
 	if (openFileDialog->ShowDialog()) {
 		SaveFilename = openFileDialog->FileName;
 		//vid.set(CAP_PROP_POS_AVI_RATIO, 0);
-		VideoWriter output(SaveFilename, VideoWriter::fourcc('m', 'p', '4', 'v'), vid_fps, Size(vid_width, vid_height));//, iscolor
-		if (!output.isOpened())
+		//VideoWriter output(SaveFilename, VideoWriter::fourcc('m', 'p', '4', 'v'), vid_fps, Size(vid_width, vid_height));//, iscolor
+		/*if (!output.isOpened())
 		{
 			std::cout << "Can't write video." << std::endl;
 			return -1;
-		}
+		}*/
 		namedWindow(SaveFilename);
+		int num = 0;
+		char text[50] = {0};
 		while (1) {
 			vid >> output_frame;
 			//remove_background(output_frame);
 			framebar = nowframe = vid.get(CAP_PROP_POS_FRAMES);
+			vid.set(CAP_PROP_POS_FRAMES, nowframe + 9);
 			GLUI_Master.sync_live_all();
+
+
 
 			if (output_frame.empty()) {
 				cout << "Video END" << std::endl;
 				break;
 			}
 
-			//¿µ»óÃ³¸®
+			//ì˜ìƒì²˜ë¦¬
 			effectpack(output_frame);
-
-			output << output_frame;
+			char* c = &*SaveFilename.begin();
+			//sprintf_s(text,"%s_%04d.bmp", c, num);
+			sprintf_s(text, "%05d.bmp", num);
+			num++;
+			imwrite(text, output_frame);
+			//output << output_frame;
 			imshow(SaveFilename, output_frame);
 			if (waitKey(1) == 27) {//1000 / vid_fps
 				cout << "Stop video record" << endl;
@@ -480,13 +489,13 @@ void OpenVideo(int id) {
 		imshow(Filename, frame);
 
 		vid_fps = vid.get(CAP_PROP_FPS);
-		vid_msec = 1.0 / (double)vid_fps * 1000; 
+		vid_msec = 1.0 / (double)vid_fps * 1000;
 		vid_framecount = vid.get(CAP_PROP_FRAME_COUNT);
 		vid_width = vid.get(CAP_PROP_FRAME_WIDTH);
 		vid_height = vid.get(CAP_PROP_FRAME_HEIGHT);
-		cout << "vid_framecount: " << vid_framecount << "vid_fps: " << vid_fps <<" vid_msec: " << vid_msec << endl;
+		cout << "vid_framecount: " << vid_framecount << "vid_fps: " << vid_fps << " vid_msec: " << vid_msec << endl;
 
-		playbutton->enable();//¸ğµç ±â´É È°¼ºÈ­
+		playbutton->enable();//ëª¨ë“  ê¸°ëŠ¥ í™œì„±í™”
 		playbar->enable();
 		btn_save->enable();
 		movedots->enable();
@@ -498,14 +507,14 @@ void OpenVideo(int id) {
 
 		radioButtonCallback(0);
 
-		scrollbar_play->set_int_limits(1, vid_framecount-1, GLUI_LIMIT_CLAMP);
+		scrollbar_play->set_int_limits(1, vid_framecount - 1, GLUI_LIMIT_CLAMP);
 
-		now_dot_pos[0][0]=0; now_dot_pos[0][1]=0;			now_dot_pos[2][0]= vid_width; now_dot_pos[2][1]=0;
-		now_dot_pos[1][0]=0; now_dot_pos[1][1]= vid_height;	now_dot_pos[3][0]= vid_width; now_dot_pos[3][1]= vid_height;
+		now_dot_pos[0][0] = 0; now_dot_pos[0][1] = 0;			now_dot_pos[2][0] = vid_width; now_dot_pos[2][1] = 0;
+		now_dot_pos[1][0] = 0; now_dot_pos[1][1] = vid_height;	now_dot_pos[3][0] = vid_width; now_dot_pos[3][1] = vid_height;
 
 		set_dots[0][0] = 0; set_dots[0][1] = 0;				set_dots[2][0] = vid_width; set_dots[2][1] = 0;
 		set_dots[1][0] = 0; set_dots[1][1] = -vid_height;	set_dots[3][0] = vid_width; set_dots[3][1] = -vid_height;
-		
+
 		setMouseCallback(Filename, drawCircle);
 
 		GLUI_Master.set_glutIdleFunc(NULL);
@@ -513,19 +522,19 @@ void OpenVideo(int id) {
 	}
 }
 
-//´Ù µÇ¸é ÇöÀç Àç»ı »óÅÂ È­¸é¿¡ ¶ç¿öº¸±â
+//ë‹¤ ë˜ë©´ í˜„ì¬ ì¬ìƒ ìƒíƒœ í™”ë©´ì— ë„ì›Œë³´ê¸°
 void idle() {
 	if (isopen) {
 		nowframe = vid.get(CAP_PROP_POS_FRAMES);
 		cout << nowframe << "\t";
 		switch (playmod) {
-		case PLAY_BACK_FAST:	vid.set(CAP_PROP_POS_FRAMES, nowframe - 4 - 1);//-4¾¿
+		case PLAY_BACK_FAST:	vid.set(CAP_PROP_POS_FRAMES, nowframe - 4 - 1);//-4ì”©
 			break;
-		case PLAY_BACK:			vid.set(CAP_PROP_POS_FRAMES, nowframe - 1 - 1);//-1¾¿
+		case PLAY_BACK:			vid.set(CAP_PROP_POS_FRAMES, nowframe - 1 - 1);//-1ì”©
 			break;
-		case PLAY_FORWARD:		vid.set(CAP_PROP_POS_FRAMES, nowframe);//+1¾¿
+		case PLAY_FORWARD:		vid.set(CAP_PROP_POS_FRAMES, nowframe);//+1ì”©
 			break;
-		case PLAY_FORWARD_FAST: vid.set(CAP_PROP_POS_FRAMES, nowframe + 3);//+4¾¿
+		case PLAY_FORWARD_FAST: vid.set(CAP_PROP_POS_FRAMES, nowframe + 3);//+4ì”©
 			break;
 
 		default: break;
@@ -538,7 +547,7 @@ void idle() {
 			if (nowframe <= 0) {
 				vid.set(CAP_PROP_POS_FRAMES, 1);
 				nowframe = vid.get(CAP_PROP_POS_FRAMES);
-				cout << "Ã³À½" << nowframe << endl;
+				cout << "ì²˜ìŒ" << nowframe << endl;
 
 				static_playtext->set_text(playtext[2]);
 
@@ -547,10 +556,10 @@ void idle() {
 			}
 		case PLAY_FORWARD:
 		case PLAY_FORWARD_FAST:
-			if (nowframe >= vid_framecount) {//vid_framecountÀ» ÃÊ°úÇÑ °æ¿ì
+			if (nowframe >= vid_framecount) {//vid_framecountì„ ì´ˆê³¼í•œ ê²½ìš°
 				vid.set(CAP_PROP_POS_FRAMES, vid_framecount);
 				nowframe = vid.get(CAP_PROP_POS_FRAMES);
-				cout << "¸¶Áö¸·(1) " << nowframe << endl;
+				cout << "ë§ˆì§€ë§‰(1) " << nowframe << endl;
 
 				static_playtext->set_text(playtext[2]);
 
@@ -561,7 +570,7 @@ void idle() {
 			if (frame.empty()) {
 				vid.set(CAP_PROP_POS_FRAMES, vid_framecount);
 				nowframe = vid.get(CAP_PROP_POS_FRAMES);
-				cout << "¸¶Áö¸·(2) " << nowframe << endl;
+				cout << "ë§ˆì§€ë§‰(2) " << nowframe << endl;
 
 				static_playtext->set_text(playtext[2]);
 
@@ -569,18 +578,18 @@ void idle() {
 				break;
 			}
 
-			if (nowframe >= 0 && !frame.empty()) {//Á¤»ó Àç»ıÁß
+			if (nowframe >= 0 && !frame.empty()) {//ì •ìƒ ì¬ìƒì¤‘
 				vid >> frame;
-				
+
 				effectpack(frame);
 
 				imshow(Filename, frame);
 				framebar = nowframe = vid.get(CAP_PROP_POS_FRAMES);
-				cout << "Á¤»ó Àç»ıÁß" << nowframe << endl;
+				cout << "ì •ìƒ ì¬ìƒì¤‘" << nowframe << endl;
 				if (nowframe >= vid_framecount) {
 					vid.set(CAP_PROP_POS_FRAMES, vid_framecount);
 					nowframe = vid.get(CAP_PROP_POS_FRAMES);
-					cout << "¸¶Áö¸·(3) " << nowframe << endl;
+					cout << "ë§ˆì§€ë§‰(3) " << nowframe << endl;
 
 					static_playtext->set_text(playtext[2]);
 
@@ -652,13 +661,13 @@ void Changemod(int id) {
 }
 
 void pause_handler(int id) {
-	if (ispause == true) {//ispause = true ¿´´Ù¸é toggle
+	if (ispause == true) {//ispause = true ì˜€ë‹¤ë©´ toggle
 		ispause = false;
 		GLUI_Master.set_glutIdleFunc(idle);
 		static_playtext->set_text(playtext[playmod + 2]);
 		GLUI_Master.sync_live_all();
 	}
-	else {//ispause = false ¿´´Ù¸é toggle
+	else {//ispause = false ì˜€ë‹¤ë©´ toggle
 		ispause = true;
 		frame.copyTo(frame_pause);
 		GLUI_Master.set_glutIdleFunc(NULL);
@@ -684,7 +693,7 @@ void frame_handler(int id) {
 void translation(int id) {
 	switch (id) {
 	case 0:
-		now_dot_pos[0][0] =  trans_dot_pos[0][0];
+		now_dot_pos[0][0] = trans_dot_pos[0][0];
 		now_dot_pos[0][1] = -trans_dot_pos[0][1];
 		cout << trans_dot_pos[0][0] << ", " << trans_dot_pos[0][1] << endl;
 		break;
@@ -709,7 +718,7 @@ void translation(int id) {
 
 int red, green, blue, drawing = false;
 void drawCircle(int event, int x, int y, int, void* param) {
-	if(isdrawing){
+	if (isdrawing) {
 		if (event == EVENT_LBUTTONDOWN)
 			drawing = true;
 		else if (event == EVENT_MOUSEMOVE) {
@@ -723,37 +732,37 @@ void drawCircle(int event, int x, int y, int, void* param) {
 }
 
 void draw_ui() {
-		rollout_draw = glui->add_rollout("Draw Color", false);
-		GLUI_Panel* panel_drawr = glui->add_panel_to_panel(rollout_draw, "Draw Color", GLUI_PANEL_NONE);
-		GLUI_Panel* panel_drawg = glui->add_panel_to_panel(rollout_draw, "Draw Color", GLUI_PANEL_NONE);
-		GLUI_Panel* panel_drawb = glui->add_panel_to_panel(rollout_draw, "Draw Color", GLUI_PANEL_NONE);
+	rollout_draw = glui->add_rollout("Draw Color", false);
+	GLUI_Panel* panel_drawr = glui->add_panel_to_panel(rollout_draw, "Draw Color", GLUI_PANEL_NONE);
+	GLUI_Panel* panel_drawg = glui->add_panel_to_panel(rollout_draw, "Draw Color", GLUI_PANEL_NONE);
+	GLUI_Panel* panel_drawb = glui->add_panel_to_panel(rollout_draw, "Draw Color", GLUI_PANEL_NONE);
 
-		GLUI_Spinner* spinner_r = glui->add_spinner_to_panel(panel_drawr, "R : ", GLUI_SPINNER_INT, &red, 0, just_sync);
-		spinner_r->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
-		spinner_r->set_speed(0.001);
-		glui->add_column_to_panel(panel_drawr, false);
-		GLUI_Scrollbar* scrollbar_r = new GLUI_Scrollbar(panel_drawr, "R", GLUI_SCROLL_HORIZONTAL, &red, 0, just_sync);
-		scrollbar_r->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
-		scrollbar_r->set_speed(0.001);
+	GLUI_Spinner* spinner_r = glui->add_spinner_to_panel(panel_drawr, "R : ", GLUI_SPINNER_INT, &red, 0, just_sync);
+	spinner_r->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+	spinner_r->set_speed(0.001);
+	glui->add_column_to_panel(panel_drawr, false);
+	GLUI_Scrollbar* scrollbar_r = new GLUI_Scrollbar(panel_drawr, "R", GLUI_SCROLL_HORIZONTAL, &red, 0, just_sync);
+	scrollbar_r->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+	scrollbar_r->set_speed(0.001);
 
 
-		GLUI_Spinner* spinner_g = glui->add_spinner_to_panel(panel_drawg, "G : ", GLUI_SPINNER_INT, &green, 0, just_sync);
-		spinner_g->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
-		spinner_g->set_speed(0.001);
-		glui->add_column_to_panel(panel_drawg, false);
-		GLUI_Scrollbar* scrollbar_g = new GLUI_Scrollbar(panel_drawg, "G", GLUI_SCROLL_HORIZONTAL, &green, 0, just_sync);
-		scrollbar_g->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
-		scrollbar_g->set_speed(0.001);
+	GLUI_Spinner* spinner_g = glui->add_spinner_to_panel(panel_drawg, "G : ", GLUI_SPINNER_INT, &green, 0, just_sync);
+	spinner_g->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+	spinner_g->set_speed(0.001);
+	glui->add_column_to_panel(panel_drawg, false);
+	GLUI_Scrollbar* scrollbar_g = new GLUI_Scrollbar(panel_drawg, "G", GLUI_SCROLL_HORIZONTAL, &green, 0, just_sync);
+	scrollbar_g->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+	scrollbar_g->set_speed(0.001);
 
-		GLUI_Spinner* spinner_b = glui->add_spinner_to_panel(panel_drawb, "B : ", GLUI_SPINNER_INT, &blue, 0, just_sync);
-		spinner_b->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
-		spinner_b->set_speed(0.001);
-		glui->add_column_to_panel(panel_drawb, false);
-		GLUI_Scrollbar* scrollbar_b = new GLUI_Scrollbar(panel_drawb, "B", GLUI_SCROLL_HORIZONTAL, &blue, 0, just_sync);
-		scrollbar_b->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
-		scrollbar_b->set_speed(0.001);
+	GLUI_Spinner* spinner_b = glui->add_spinner_to_panel(panel_drawb, "B : ", GLUI_SPINNER_INT, &blue, 0, just_sync);
+	spinner_b->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+	spinner_b->set_speed(0.001);
+	glui->add_column_to_panel(panel_drawb, false);
+	GLUI_Scrollbar* scrollbar_b = new GLUI_Scrollbar(panel_drawb, "B", GLUI_SCROLL_HORIZONTAL, &blue, 0, just_sync);
+	scrollbar_b->set_int_limits(0, 255, GLUI_LIMIT_CLAMP);
+	scrollbar_b->set_speed(0.001);
 
-		rollout_draw->disable();
+	rollout_draw->disable();
 }
 
 
@@ -805,22 +814,22 @@ int main(int argc, char* argv[])
 	btn[4]->set_w(30);
 	playbutton->disable();
 
-	GLUI_Panel*panel_playtext=glui->add_panel("Text", GLUI_PANEL_NONE);
+	GLUI_Panel* panel_playtext = glui->add_panel("Text", GLUI_PANEL_NONE);
 	static_playtext = glui->add_statictext_to_panel(panel_playtext, playtext[playmod + 2]);
 
-	GLUI_Panel*move = glui->add_panel("Move", GLUI_PANEL_NONE);
+	GLUI_Panel* move = glui->add_panel("Move", GLUI_PANEL_NONE);
 	movedots = glui->add_panel_to_panel(move, "Move", GLUI_PANEL_EMBOSSED);
-	dots[0] = glui->add_translation_to_panel(movedots, "Left Top",		GLUI_TRANSLATION_XY, trans_dot_pos[0], 0, translation);
-	dots[1] = glui->add_translation_to_panel(movedots, "Left Bottom",	GLUI_TRANSLATION_XY, trans_dot_pos[1], 1, translation);
+	dots[0] = glui->add_translation_to_panel(movedots, "Left Top", GLUI_TRANSLATION_XY, trans_dot_pos[0], 0, translation);
+	dots[1] = glui->add_translation_to_panel(movedots, "Left Bottom", GLUI_TRANSLATION_XY, trans_dot_pos[1], 1, translation);
 	glui->add_column_to_panel(movedots, false);
-	dots[2] = glui->add_translation_to_panel(movedots, "Right Top",		GLUI_TRANSLATION_XY, trans_dot_pos[2], 2, translation);
-	dots[3] = glui->add_translation_to_panel(movedots, "Right Bottom",	GLUI_TRANSLATION_XY, trans_dot_pos[3], 3, translation);
+	dots[2] = glui->add_translation_to_panel(movedots, "Right Top", GLUI_TRANSLATION_XY, trans_dot_pos[2], 2, translation);
+	dots[3] = glui->add_translation_to_panel(movedots, "Right Bottom", GLUI_TRANSLATION_XY, trans_dot_pos[3], 3, translation);
 	movedots->disable();
 
 	glui->add_column_to_panel(move, false);
 
 	radiobutton = glui->add_panel_to_panel(move, "Move", GLUI_PANEL_EMBOSSED);
-	radiogroup=glui->add_radiogroup_to_panel(radiobutton, &selected_point, 0, radioButtonCallback);
+	radiogroup = glui->add_radiogroup_to_panel(radiobutton, &selected_point, 0, radioButtonCallback);
 	glui->add_radiobutton_to_group(radiogroup, "Left Top");
 	glui->add_radiobutton_to_group(radiogroup, "Left Bottom");
 	glui->add_column_to_panel(radiobutton, false);
