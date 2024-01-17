@@ -446,7 +446,7 @@ int Save() {//all record 추가하기
 			vid >> output_frame;
 			//remove_background(output_frame);
 			framebar = nowframe = vid.get(CAP_PROP_POS_FRAMES);
-			vid.set(CAP_PROP_POS_FRAMES, nowframe + 19);
+			vid.set(CAP_PROP_POS_FRAMES, nowframe + 9);
 			GLUI_Master.sync_live_all();
 
 
@@ -459,7 +459,8 @@ int Save() {//all record 추가하기
 			//영상처리
 			effectpack(output_frame);
 			char* c = &*SaveFilename.begin();
-			sprintf_s(text,"%s_%04d.bmp", c, num);
+			//sprintf_s(text,"%s_%04d.bmp", c, num);
+			sprintf_s(text, "%05d.bmp", num);
 			num++;
 			imwrite(text, output_frame);
 			//output << output_frame;
