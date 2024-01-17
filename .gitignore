@@ -14,3 +14,4 @@
 .vs/OpenCV/v17/ipch/AutoPCH/a7b6d528db4b6c93/6-6_캐니 에지 연산자.ipch
 .vs/OpenCV/v17/ipch/AutoPCH/b100230191b1ccfb/TEST1.ipch
 .vs/OpenCV/v17/ipch/AutoPCH/b317fc7c6ede1b6b/OPENFILEDIALOG.ipch
+*.ipch
