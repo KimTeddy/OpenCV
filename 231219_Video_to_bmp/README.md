@@ -1,8 +1,15 @@
 # <동영상을 10프레임 간격으로 BMP 이미지로 저장하는 프로그램>
 - 2023 임베디드시스템 프로젝트에 사용하기 위해 만듦.
 - 이하 [231201_Video_player_with_video_analyzer](231201_Video_player_with_video_analyzer)와 동일
-  - [Video Save to BMP](#b2-video-save-to-bmp) 부분만 다름
-    - 현재 프레임부터 10프레임씩 건너뛰며 1씩 넘버링을 증가시키며 저장한다.
+- [Video Save to BMP](#b2-video-save-to-bmp) 부분만 다름
+	- 현재 프레임부터 ESC를 누를 때까지 영상 처리가 적용된 프레임이 10프레임씩 건너뛰며 bmp 확장자로 저장된다.<br>
+		- 아무 버튼도 누르지 않은 경우 영상의 끝 프레임까지 저장된다.
+	    	- 현재 프레임부터 10프레임씩 건너뛸 때 1씩 넘버링을 증가시키며 저장한다.<br>
+      			- sprintf_s(text, "%05d.bmp", num);//최신 코드
+      
+         		- //sprintf_s(text,"%s_%04d.bmp", c, num); 였을 때의 출력
+![image](https://github.com/KimTeddy/OpenCV/assets/68770209/85649e72-3a02-45d0-b893-2e5fffe267d9)
+	
 ***
 
 ## 결과이미지
@@ -53,12 +60,12 @@
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/946b854d-4a25-4d00-87fe-f34035d7f861)
 
 ### B.2. Video Save to BMP
-- Save 버튼을 누르고 저장할 이미지의 이름으로 저장하면 되며,<br>
+- Save 버튼을 눌러 ~~저장할 이미지의 이름으로~~ 저장하면 되며,<br>
 ![image](https://github.com/KimTeddy/OpenCV/assets/68770209/d40e68ae-5d90-4a44-a3e5-9433495ddf10)<br>
 - 현재 프레임부터 ESC를 누를 때까지 영상 처리가 적용된 프레임이 10프레임씩 건너뛰며 bmp 확장자로 저장된다.<br>
 	- 아무 버튼도 누르지 않은 경우 영상의 끝 프레임까지 저장된다.
-    	- 현재 프레임부터 10프레임씩 건너뛸 때 1씩 넘버링을 증가시키며 저장한다.
-- 윈도우 미디어 플레이어에서도 잘 작동한다.<br>
+    	- 현재 프레임부터 10프레임씩 건너뛸 때 1씩 넘버링을 증가시키며 저장한다.<br>
+![image](https://github.com/KimTeddy/OpenCV/assets/68770209/85649e72-3a02-45d0-b893-2e5fffe267d9)
 
 
 ## C. 영상 재생/일시정지
