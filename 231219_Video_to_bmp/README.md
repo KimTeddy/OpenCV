@@ -1,6 +1,6 @@
 # <동영상을 10프레임 간격으로 BMP 이미지로 저장하는 프로그램>
 - 2023 임베디드시스템 프로젝트에 사용하기 위해 만듦.
-- 이하 [231201_Video_player_with_video_analyzer](231201_Video_player_with_video_analyzer)와 동일
+- 이하 [231201_Video_player_with_video_analyzer](../231201_Video_player_with_video_analyzer)와 동일
 - [Video Save to BMP](#b2-video-save-to-bmp) 부분만 다름
 	- 현재 프레임부터 ESC를 누를 때까지 영상 처리가 적용된 프레임이 10프레임씩 건너뛰며 bmp 확장자로 저장된다.<br>
 		- 아무 버튼도 누르지 않은 경우 영상의 끝 프레임까지 저장된다.
