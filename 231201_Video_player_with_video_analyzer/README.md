@@ -28,9 +28,9 @@
 		-BlurSize 조절
 
 - 영상 분석
-	- Hough Lines
-	- Hough Circles
-	- Remove Background
+	- [Hough Lines](#d7-hough-lines)
+	- [Hough Circles](#d8-hough-circles)
+	- [Remove Background](#d9-remove-background)
 
 
 # 사용 방법
