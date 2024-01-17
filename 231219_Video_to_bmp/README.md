@@ -1,11 +1,9 @@
-# <이미지 영상처리 프로그램>
+# <동영상을 10프레임 간격으로 BMP 이미지로 저장하는 프로그램>
 - 2023 임베디드시스템 프로젝트에 사용하기 위해 만듦.
 - 이하 [231201_Video_player_with_video_analyzer](231201_Video_player_with_video_analyzer)와 동일
   - [Video Save to BMP](#b2-video-save-to-bmp) 부분만 다름
     - 현재 프레임부터 10프레임씩 건너뛰며 1씩 넘버링을 증가시키며 저장한다.
 ***
-
-# <동영상 영상처리 프로그램>
 
 ## 결과이미지
 ### 전체 실행 모습
